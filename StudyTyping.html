@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <title>タイピングゲーム</title>
+  <style>
+    /*===== 基本リセット =====*/
+    body,
+    h1,
+    h2,
+    p,
+    button,
+    input,
+    div,
+    span,
+    table,
+    td,
+    textarea {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* 背景・ベースカラーは白、アクセントは #5563DE */
+    body {
+      font-family: Arial, sans-serif;
+      background: white;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /*===== 共通コンテナ =====*/
+    #start-screen,
+    #game-screen,
+    #result-screen,
+    #waiting-screen,
+    #data-editor {
+      background: white;
+      border-radius: 8px;
+      padding: 20px 20px 60px;
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+
+    /* 待機画面は中央に表示 */
+    #waiting-screen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+    }
+
+    /* 問題データ編集画面（初期非表示） */
+    #data-editor {
+      display: none;
+      text-align: left;
+    }
+
+    h1,
+    h2 {
+      color: #5563DE;
+    }
+
+    p {
+      margin-bottom: 20px;
+      font-size: 1.1em;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      background: #5563DE;
+      color: white;
+      font-size: 1em;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    button:hover {
+      background: #434bbd;
+    }
+
+    /*===== iOS風トグルスイッチ =====*/
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 50px;
+      height: 28px;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 28px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+
+    input:checked+.slider {
+      background-color: #5563DE;
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(22px);
+    }
+
+    /* トグルスイッチの行を中央揃え */
+    #option-container {
+      margin-bottom: 20px;
+      text-align: center;
+      font-size: 0.95em;
+    }
+
+    /*===== スタート画面：問題集選択 =====*/
+    #set-selector {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    #set-selector label {
+      margin-right: 10px;
+      font-size: 0.9em;
+    }
+
+    /*===== ゲーム画面 =====*/
+    #progress {
+      font-size: 0.9em;
+      margin-bottom: 10px;
+      color: #666;
+    }
+
+    #description {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+      min-height: 40px;
+    }
+
+    #typed-display {
+      font-size: 1.4em;
+      margin-bottom: 10px;
+      letter-spacing: 5px;
+      min-height: 1.5em;
+    }
+
+    #correct-answer-display {
+      min-height: 30px;
+      font-size: 1em;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    #input-field {
+      padding: 10px;
+      font-size: 1.1em;
+      width: 100%;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    #feedback {
+      min-height: 80px;
+    }
+
+    @keyframes flashAnimation {
+      0% {
+        background-color: white;
+      }
+
+      50% {
+        background-color: #ffcccc;
+      }
+
+      100% {
+        background-color: white;
+      }
+    }
+
+    .flash {
+      animation: flashAnimation 0.3s;
+    }
+
+    /* ライブスタッツ（右下） */
+    #live-stats {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      font-size: 0.9em;
+      color: #666;
+      opacity: 0.7;
+    }
+
+    /* 問題情報（左下）：Tier、正解回数、最新正解日 */
+    #question-info {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      font-size: 0.9em;
+      color: #666;
+      opacity: 0.7;
+    }
+
+    /* キーボードスケルトン */
+    #keyboard-container {
+      margin-top: 20px;
+    }
+
+    #keyboard {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .keyboard-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 5px;
+    }
+
+    .key {
+      width: 35px;
+      height: 35px;
+      margin: 2px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      text-align: center;
+      line-height: 35px;
+      font-size: 0.9em;
+      background-color: #f9f9f9;
+    }
+
+    .active-key {
+      background-color: #5563DE;
+      color: white;
+      font-weight: bold;
+    }
+
+    #finger-display {
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    /* リザルト画面 */
+    #result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    #result-table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    #result-header {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .level-label {
+      font-size: 0.8em;
+      color: #666;
+    }
+
+    .level-value {
+      font-size: 2.5em;
+      font-weight: bold;
+    }
+
+    .score-label {
+      font-size: 0.8em;
+      color: #666;
+    }
+
+    .score-value {
+      font-size: 2.5em;
+      font-weight: bold;
+    }
+
+    /* カウントダウン用の円形フィードバック */
+    #countdown-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: #5563DE;
+      position: relative;
+      margin: 0 auto;
+      overflow: hidden;
+    }
+
+    #countdown-circle::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 50%;
+      height: 100%;
+      background: white;
+      transform-origin: left center;
+      animation: maskRotate 1s linear forwards;
+    }
+
+    @keyframes maskRotate {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    #countdown-hand {
+      position: absolute;
+      width: 3px;
+      height: 40px;
+      background: #333;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      transform-origin: bottom center;
+      animation: handRotate 1s linear forwards;
+    }
+
+    @keyframes handRotate {
+      from {
+        transform: translateX(-50%) rotate(0deg);
+      }
+
+      to {
+        transform: translateX(-50%) rotate(360deg);
+      }
+    }
+
+    /* 待機画面 */
+    #waiting-screen {
+      display: none;
+    }
+
+    #waiting-countdown {
+      font-size: 4em;
+      font-weight: bold;
+      color: #5563DE;
+    }
+
+    /* 問題データ編集画面 */
+    #data-editor textarea {
+      width: 100%;
+      height: 300px;
+      font-family: monospace;
+      font-size: 0.9em;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      resize: vertical;
+    }
+
+    #data-editor button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- スタート画面 -->
+  <div id="start-screen">
+    <h1>StudyTyping 10</h1>
+      ver.2025.2.7
+    <p>
+      答えをローマ字読みで1文字ずつタイピング<br>
+      問題をExcelから貼り付けで取り込み<br>
+      Excelコピペで正解回数もセーブ＆ロード
+    </p>
+    <!-- 問題集選択 -->
+    <h2>問題集リスト</h1>
+      選択した問題集から10問出題<br>
+    <div id="set-selector"></div>
+    <!-- iOS風トグルオプション -->
+    <div id="option-container">
+      <label class="switch">
+        <input type="checkbox" id="show-answer-toggle" checked>
+        <span class="slider"></span>
+      </label>
+      <span>答えをはじめから表示する</span>
+    </div>
+    <button id="start-button">ゲームスタート</button>
+    <br>
+    <button id="edit-data-button" style="background:#888;">問題データ編集</button>
+    
+  </div>
+
+  <!-- 待機画面 -->
+  <div id="waiting-screen">
+    <div id="waiting-countdown">2</div>
+  </div>
+
+  <!-- ゲーム画面 -->
+  <div id="game-screen" style="display: none;">
+    <div id="progress"></div>
+    <div id="description"></div>
+    <div id="typed-display"></div>
+    <!-- 正解表示（ruby形式） -->
+    <div id="correct-answer-display"></div>
+    <input type="text" id="input-field" placeholder="キーを押してください" autofocus />
+    <div id="feedback"></div>
+    <div id="keyboard-container">
+      <div id="keyboard">
+        <div class="keyboard-row">
+          <div class="key" data-key="q">Q</div>
+          <div class="key" data-key="w">W</div>
+          <div class="key" data-key="e">E</div>
+          <div class="key" data-key="r">R</div>
+          <div class="key" data-key="t">T</div>
+          <div class="key" data-key="y">Y</div>
+          <div class="key" data-key="u">U</div>
+          <div class="key" data-key="i">I</div>
+          <div class="key" data-key="o">O</div>
+          <div class="key" data-key="p">P</div>
+        </div>
+        <div class="keyboard-row">
+          <div class="key" data-key="a">A</div>
+          <div class="key" data-key="s">S</div>
+          <div class="key" data-key="d">D</div>
+          <div class="key" data-key="f">F</div>
+          <div class="key" data-key="g">G</div>
+          <div class="key" data-key="h">H</div>
+          <div class="key" data-key="j">J</div>
+          <div class="key" data-key="k">K</div>
+          <div class="key" data-key="l">L</div>
+        </div>
+        <div class="keyboard-row">
+          <div class="key" data-key="z">Z</div>
+          <div class="key" data-key="x">X</div>
+          <div class="key" data-key="c">C</div>
+          <div class="key" data-key="v">V</div>
+          <div class="key" data-key="b">B</div>
+          <div class="key" data-key="n">N</div>
+          <div class="key" data-key="m">M</div>
+        </div>
+      </div>
+      <div id="finger-display"></div>
+    </div>
+    <!-- ライブスタッツ（右下） -->
+    <div id="live-stats"></div>
+    <!-- 現在の問題情報（左下） -->
+    <div id="question-info"></div>
+  </div>
+
+  <!-- リザルト画面 -->
+  <div id="result-screen" style="display: none;">
+    <h2>ゲーム終了</h2>
+    <div id="result-header"></div>
+    <div id="result-message"></div>
+    <button id="restart-button">再スタート</button>
+    <button id="home-button">ホームに戻る</button>
+  </div>
+
+  <!-- 問題データ編集画面 -->
+  <div id="data-editor">
+    <h2>問題データ確認・編集</h2>
+    <p>
+      以下はタブ区切り形式のデータです。<br>
+      ヘッダー行：<br>
+      問題No 問題集名 Tier ローマ字答え 答え 問題文 出題回数 正解回数 最新正解日
+    </p>
+    <textarea id="data-textarea"></textarea>
+    <br>
+    <button id="update-data-button">更新</button>
+    <button id="cancel-data-button" style="background:#888;">戻る</button>
+  </div>
+
+  <script>
+    /********** サンプル問題データ（更新済み） **********/
+    let keywords = [
+      { "keyword": "第4次産業革命",  "description": "AIやIoT、ロボット技術の発展により、社会や産業のあり方が大きく変わる現象は何？",  "setName": "0",  "tier": "I",  "answer": "dai4zisangyoukakumei",  "correct": "第4次産業革命",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "Society5.0",  "description": "日本が提唱する、人間中心の超スマート社会を目指すコンセプトは何？",  "setName": "0",  "tier": "I",  "answer": "Society5.0",  "correct": "Society5.0",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "Singularity",  "description": "AIが人間の知能を超え、自己進化し続ける転換点を何という？",  "setName": "0",  "tier": "I",  "answer": "Singularity",  "correct": "Singularity",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "不易流行",  "description": "変わらない本質と、時代に応じて変化するものを共存させる考え方は何？",  "setName": "0",  "tier": "I",  "answer": "huekiryuukou",  "correct": "不易流行",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "情報の残存性",  "description": "一度公開された情報は、完全には消去できないという性質を何という？",  "setName": "1",  "tier": "I",  "answer": "zyouhounozansonsei",  "correct": "情報の残存性",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "情報の複製性",  "description": "デジタルデータが容易にコピーされ、原本と区別がつかなくなる性質を何という？",  "setName": "1",  "tier": "I",  "answer": "zyouhounohukuseisei",  "correct": "情報の複製性",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "情報の伝播性",  "description": "SNSなどを通じて、一度広まった情報が瞬時に拡散される性質を何という？",  "setName": "1",  "tier": "I",  "answer": "zyouhounodenpasei",  "correct": "情報の伝播性",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "情報の個別性",  "description": "同じ情報でも受け取る人によって意味や価値が異なる性質を何という？",  "setName": "1",  "tier": "II",  "answer": "zyouhounokobetusei",  "correct": "情報の個別性",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "情報の目的性",  "description": "情報は必ず何らかの目的をもって作られ、発信される性質を何という？",  "setName": "1",  "tier": "II",  "answer": "zyouhounomokutekisei",  "correct": "情報の目的性",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "メディア",  "description": "ラテン語で「中間」や「媒体」を意味し、情報伝達の手段を指す言葉は何？",  "setName": "2",  "tier": "I",  "answer": "medhia",  "correct": "メディア",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "メディアリテラシー",  "description": "偏った情報やフェイクニュースを見抜き、適切に活用する能力を何という？",  "setName": "2",  "tier": "I",  "answer": "medhiariterasi-",  "correct": "メディアリテラシー",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "トレードオフ",  "description": "何かを得るために、別の何かを犠牲にしなければならない関係を何という？",  "setName": "3",  "tier": "I",  "answer": "tore-doohu",  "correct": "トレードオフ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "PDCAサイクル",  "description": "計画・実行・評価・改善を繰り返し、業務を継続的に向上させる手法は何？",  "setName": "3",  "tier": "I",  "answer": "PDCAsaikuru",  "correct": "PDCAサイクル",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "VUCA",  "description": "変動性・不確実性・複雑性・曖昧性が高い、現代の社会状況を表す言葉は何？",  "setName": "3",  "tier": "II",  "answer": "VUCA",  "correct": "VUCA",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "OODAループ",  "description": "状況を観察し、即座に意思決定し、行動することで、変化に適応するフレームワークは何？",  "setName": "3",  "tier": "II",  "answer": "OODAru-pu",  "correct": "OODAループ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ファクトチェック",  "description": "メディアやSNSで広がる情報が正しいか、証拠をもとに検証する行為を何という？",  "setName": "4",  "tier": "II",  "answer": "fakutochekku",  "correct": "ファクトチェック",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "クロスチェック",  "description": "異なる情報源を比較し、情報の正確性を検証する手法を何という？",  "setName": "4",  "tier": "II",  "answer": "kurosuchekku",  "correct": "クロスチェック",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "一次情報",  "description": "二次情報や伝聞ではなく、直接観察・調査・取材によって得られた情報を何という？",  "setName": "4",  "tier": "II",  "answer": "一zizyouhou",  "correct": "一次情報",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "データマイニング",  "description": "膨大なデータからパターンや法則を発見し、有益な知識を抽出する技術は何？",  "setName": "4",  "tier": "I",  "answer": "de-tamainingu",  "correct": "データマイニング",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ブレインストーミング",  "description": "アイデアを自由に出し合い、新しい発想を生み出すためのグループワークは何？",  "setName": "5",  "tier": "I",  "answer": "bureinsuto-mingu",  "correct": "ブレインストーミング",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "マインドマップ",  "description": "アイデアを視覚的に整理し、関連性を見える形にするための思考ツールは何？",  "setName": "5",  "tier": "II",  "answer": "maindomappu",  "correct": "マインドマップ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "KJ法",  "description": "大量の情報を分類・整理し、グループごとにまとめることで新しい発見を促す手法は何？",  "setName": "5",  "tier": "II",  "answer": "KJhou",  "correct": "KJ法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "著作権",  "description": "創作された文章・音楽・映像などに発生し、無断利用を禁止する権利を何という？",  "setName": "6",  "tier": "I",  "answer": "tyosakuken",  "correct": "著作権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "著作権の保護期間",  "description": "一般的に、著作権が発生した後、一定期間が経過すると消滅する。この期間を何という？",  "setName": "6",  "tier": "I",  "answer": "tyosakukennohogokikan",  "correct": "著作権の保護期間",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "著作物の定義文",  "description": "「思想または感情を創作的に表現した文芸、学術、美術または音楽の範囲に属するもの」と定義されるのは何？",  "setName": "6",  "tier": "I",  "answer": "tyosakubutunoteigibun",  "correct": "著作物の定義文",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "著作者人格権",  "description": "",  "setName": "6",  "tier": "I",  "answer": "tyosakusyazinkakuken",  "correct": "著作者人格権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "公表権",  "description": "著作者が、自分の作品を公開するかどうかを決める権利を何という？",  "setName": "6",  "tier": "I",  "answer": "kouhyouken",  "correct": "公表権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "氏名表示権",  "description": "著作物が公表される際、著作者が自分の名前を表示するかどうかを決める権利を何という？",  "setName": "6",  "tier": "I",  "answer": "simeihyouziken",  "correct": "氏名表示権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "同一性保持権",  "description": "著作物が改変されないように守るための著作者の権利を何という？",  "setName": "6",  "tier": "I",  "answer": "douituseihoziken",  "correct": "同一性保持権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "他人の著作物を使用する方法",  "description": "",  "setName": "6",  "tier": "I",  "answer": "taninnotyosakubutuwosiyousuruhouhou",  "correct": "他人の著作物を使用する方法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "1. 著作者の許可を取る",  "description": "",  "setName": "6",  "tier": "I",  "answer": "1. tyosakusyanomotokawotoru",  "correct": "1. 著作者の許可を取る",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "2. 著作物の引用",  "description": "他人の著作物を一定の条件のもとで、自分の作品に取り入れる行為を何という？",  "setName": "6",  "tier": "I",  "answer": "2. tyosakubutunoinyou",  "correct": "2. 著作物の引用",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "引用条件1: 引用する必然性がある",  "description": "自分の主張を補強する目的でのみ、他人の著作物を使うべきという条件を何という？",  "setName": "6",  "tier": "I",  "answer": "inyouzyouken1: inyousuruhituzenseigaaru",  "correct": "引用条件1: 引用する必然性がある",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "引用条件2: 引用部分が他と区別できる",  "description": "自分の著作物と引用部分を明確に区別する必要がある。この条件を何という？",  "setName": "6",  "tier": "I",  "answer": "inyouzyouken2: inyoububungahokatokubetudekiru",  "correct": "引用条件2: 引用部分が他と区別できる",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "引用条件3: 引用部分を勝手に変えない",  "description": "引用する際、元の著作物の内容を改変してはいけないという条件を何という？",  "setName": "6",  "tier": "I",  "answer": "inyouzyouken3: inyoububunwokattenikaenai",  "correct": "引用条件3: 引用部分を勝手に変えない",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "引用条件4: 引用部分が全体の一部",  "description": "引用する際、元の著作物が自作よりも大部分を占めてはいけないという条件を何という？",  "setName": "6",  "tier": "I",  "answer": "inyouzyouken4: inyoububungazenkaradanoitibu",  "correct": "引用条件4: 引用部分が全体の一部",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "引用条件5: 出典の明記",  "description": "他人の著作物を引用する際、必ず記載しなければならない情報は何？",  "setName": "6",  "tier": "I",  "answer": "inyouzyouken5: syuttennomeiki",  "correct": "引用条件5: 出典の明記",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "3. 私的利用のための複製",  "description": "自分だけが使う目的であれば、著作物をコピーしてもよいとされる条件を何という？",  "setName": "6",  "tier": "I",  "answer": "3. sitekiriyounotamenohukusei",  "correct": "3. 私的利用のための複製",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "4. 教育活動",  "description": "学校の授業などで著作物を使用する際、一定条件のもとで許可なしに使える行為を何という？",  "setName": "6",  "tier": "I",  "answer": "4. kyouikukatudou",  "correct": "4. 教育活動",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "5. 非営利の上演",  "description": "著作権者の許可なしで、無料で演奏や演劇を行うことが認められる条件は何？",  "setName": "6",  "tier": "I",  "answer": "5. hieirinozyouen",  "correct": "5. 非営利の上演",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "パブリックドメイン",  "description": "著作権の保護期間が終了し、誰でも自由に利用できるようになった作品を何という？",  "setName": "6",  "tier": "I",  "answer": "paburikkudomein",  "correct": "パブリックドメイン",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "CCライセンス",  "description": "著作者が特定の条件を定め、自由に利用できるようにしたライセンスを何という？",  "setName": "6",  "tier": "I",  "answer": "CCraisensu",  "correct": "CCライセンス",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "BY(Attribution)",  "description": "CCライセンスのうち、作品の利用時に著作者の名前を明記する必要がある条件は何？",  "setName": "6",  "tier": "I",  "answer": "BY(Attribution)",  "correct": "BY(Attribution)",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "NC(NonCommercial)",  "description": "CCライセンスのうち、営利目的での利用を禁止する条件を何という？",  "setName": "6",  "tier": "I",  "answer": "NC(NonCommercial)",  "correct": "NC(NonCommercial)",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ND(No Derivative Works)",  "description": "CCライセンスのうち、作品を改変せずにそのまま利用することを条件とするものは何？",  "setName": "6",  "tier": "I",  "answer": "ND(No Derivative Works)",  "correct": "ND(No Derivative Works)",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "SA(Share Alike)",  "description": "CCライセンスのうち、元のライセンスと同じ条件で二次利用を許可するものは何？",  "setName": "6",  "tier": "I",  "answer": "SA(Share Alike)",  "correct": "SA(Share Alike)",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "産業財産権",  "description": "発明やデザイン、商標などを独占的に保護する知的財産権の総称は何？",  "setName": "6",  "tier": "II",  "answer": "sangyouzaisanken",  "correct": "産業財産権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "方式主義",  "description": "産業財産権において、権利を取得するために特許庁への登録が必要な原則を何という？",  "setName": "6",  "tier": "II",  "answer": "housikisyugi",  "correct": "方式主義",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "特許権",  "description": "新しい技術や発明を独占的に使用できる権利を何という？",  "setName": "6",  "tier": "I",  "answer": "tokkyoken",  "correct": "特許権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "実用新案権",  "description": "小規模な改良発明を保護し、比較的短期間で権利を取得できる仕組みを何という？",  "setName": "6",  "tier": "I",  "answer": "zituyousinanken",  "correct": "実用新案権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "意匠権",  "description": "物のデザインや形状を独占的に使用できる権利を何という？",  "setName": "6",  "tier": "I",  "answer": "isyouken",  "correct": "意匠権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "商標権",  "description": "企業のロゴやブランド名を保護し、他社が無断で使用することを防ぐ権利を何という？",  "setName": "6",  "tier": "I",  "answer": "syouhyouken",  "correct": "商標権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "登録商標マーク",  "description": "商標権が正式に登録されたことを示すマークは何？",  "setName": "6",  "tier": "I",  "answer": "tourokusyouhyouma-ku",  "correct": "登録商標マーク",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "海賊版のダウンロード",  "description": "著作権を侵害するコンテンツを無許可で入手する行為を何という？",  "setName": "6",  "tier": "I",  "answer": "kaizokubannodaunro-do",  "correct": "海賊版のダウンロード",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "海賊版のアップロード",  "description": "著作権者の許可なくコンテンツを公開し、他者にダウンロードさせる行為を何という？",  "setName": "6",  "tier": "I",  "answer": "kaizokubannoappuro-do",  "correct": "海賊版のアップロード",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "剽窃・盗作",  "description": "他人の作品やアイデアを無断で流用し、自分のものとして発表する行為を何という？",  "setName": "6",  "tier": "I",  "answer": "hyousetu・tousaku",  "correct": "剽窃・盗作",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "著作権のグレーゾーン",  "description": "二次創作やパロディなど、法律上の解釈が分かれる著作物の扱いを何という？",  "setName": "6",  "tier": "I",  "answer": "tyosakukennogure-zo-n",  "correct": "著作権のグレーゾーン",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "個人情報",  "description": "氏名や住所、電話番号など、特定の個人を識別できる情報を何という？",  "setName": "7",  "tier": "II",  "answer": "kozinzyouhou",  "correct": "個人情報",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "基本四情報",  "description": "個人を特定するために特に重要な、「氏名・住所・生年月日・性別」の4つを何という？",  "setName": "7",  "tier": "I",  "answer": "kihon四zyouhou",  "correct": "基本四情報",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プライバシー権",  "description": "個人が自分の情報を管理し、不当に侵害されない権利を何という？",  "setName": "7",  "tier": "I",  "answer": "puraibasi-ken",  "correct": "プライバシー権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "肖像権",  "description": "個人の顔や姿を無断で撮影・公開されないように守る権利を何という？",  "setName": "7",  "tier": "I",  "answer": "syouzouken",  "correct": "肖像権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "パブリシティ権",  "description": "有名人の名前や顔を、無断で商業利用されないように守る権利を何という？",  "setName": "7",  "tier": "I",  "answer": "paburisithiken",  "correct": "パブリシティ権",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "オプトアウト",  "description": "ユーザーが事前に同意しなくてもデータ収集され、後から拒否できる仕組みを何という？",  "setName": "7",  "tier": "II",  "answer": "oputoauto",  "correct": "オプトアウト",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "オプトイン",  "description": "ユーザーが明示的に同意しない限り、個人情報が収集されない仕組みを何という？",  "setName": "7",  "tier": "II",  "answer": "oputoin",  "correct": "オプトイン",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "デジタルタトゥー",  "description": "一度インターネットに公開された情報が、完全に消去することが困難な現象を何という？",  "setName": "7",  "tier": "I",  "answer": "dezitarutatwu-",  "correct": "デジタルタトゥー",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "忘れられる権利",  "description": "過去の個人情報をインターネット上から削除するよう求める権利を何という？",  "setName": "7",  "tier": "I",  "answer": "wasurerarerukenri",  "correct": "忘れられる権利",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "個人認証",  "description": "ユーザーが本人であることを確認するための仕組みを何という？",  "setName": "8",  "tier": "II",  "answer": "kozinninsyou",  "correct": "個人認証",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "多要素認証",  "description": "パスワードだけでなく、複数の手段を組み合わせて本人確認を行う認証方式を何という？",  "setName": "8",  "tier": "II",  "answer": "tayousoninsyou",  "correct": "多要素認証",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "知識情報",  "description": "パスワードや秘密の質問など、本人しか知らない情報を用いた認証手段を何という？",  "setName": "8",  "tier": "II",  "answer": "tisikizyouhou",  "correct": "知識情報",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "所持情報",  "description": "スマートフォンやICカードなど、物理的に所有するデバイスを使う認証手段を何という？",  "setName": "8",  "tier": "II",  "answer": "syozizyouhou",  "correct": "所持情報",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "生体情報",  "description": "指紋や顔認証など、身体的特徴を利用した認証手段を何という？",  "setName": "8",  "tier": "II",  "answer": "seitaizyouhou",  "correct": "生体情報",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "PINコード",  "description": "数字の組み合わせで個人認証を行う、主にスマホや銀行カードで使用されるコードを何という？",  "setName": "8",  "tier": "II",  "answer": "PINko-do",  "correct": "PINコード",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ブルートフォースアタック",  "description": "可能な組み合わせを総当たりで試し、パスワードを解読する攻撃手法を何という？",  "setName": "8",  "tier": "II",  "answer": "buru-tofo-suatakku",  "correct": "ブルートフォースアタック",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "リバースブルートフォースアタック",  "description": "一般的に使われるパスワードを固定し、多数のアカウントに試す攻撃を何という？",  "setName": "8",  "tier": "II",  "answer": "riba-suburu-tofo-suatakku",  "correct": "リバースブルートフォースアタック",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "パスの文字種を増やすべき理由",  "description": "パスワードの強度を高めるために、数字・英字・記号などを組み合わせるべき理由は何？",  "setName": "8",  "tier": "II",  "answer": "pasunomozisyuwohuyasubekiriyuu",  "correct": "パスの文字種を増やすべき理由",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "パスをぱっと見読めないものにすべき理由",  "description": "他人に盗み見されるリスクを減らすために、パスワードはどのようにすべきか？",  "setName": "8",  "tier": "II",  "answer": "pasuwopattomiyomenaimononisubekiriyuu",  "correct": "パスをぱっと見読めないものにすべき理由",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ソーシャルエンジニアリング",  "description": "人間の心理を利用して、パスワードや個人情報を不正に取得する手法を何という？",  "setName": "8",  "tier": "I",  "answer": "so-syaruenziniaringu",  "correct": "ソーシャルエンジニアリング",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "フィッシング対策",  "description": "偽のウェブサイトやメールで個人情報を盗み取る詐欺から身を守る方法は何？",  "setName": "8",  "tier": "I",  "answer": "fissingutaisaku",  "correct": "フィッシング対策",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ドメイン名",  "description": "インターネット上で特定のウェブサイトを識別するために用いられる名前を何という？",  "setName": "8",  "tier": "II",  "answer": "domeinmei",  "correct": "ドメイン名",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "情報セキュリティの三要素",  "description": "情報の安全性を守るために重要な「機密性・完全性・可用性」をまとめて何という？",  "setName": "8",  "tier": "I",  "answer": "zyouhousekyurithino三youso",  "correct": "情報セキュリティの三要素",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "機密性",  "description": "情報を許可された人だけが閲覧できるようにする、セキュリティの基本要素は何？",  "setName": "8",  "tier": "I",  "answer": "kimitusei",  "correct": "機密性",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "完全性",  "description": "データが改ざんや破損されることなく、正確な状態で維持される性質を何という？",  "setName": "8",  "tier": "I",  "answer": "kanzensei",  "correct": "完全性",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "可用性",  "description": "必要なときに適切な情報にアクセスできるようにする、情報セキュリティの基本要素は何？",  "setName": "8",  "tier": "I",  "answer": "kayousei",  "correct": "可用性",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プロバイダ責任制限法",  "description": "インターネット上の違法な投稿に対し、サービス提供者の責任を一定の範囲で制限する法律を何という？",  "setName": "9",  "tier": "II",  "answer": "purobaidasekininseigenhou",  "correct": "プロバイダ責任制限法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "CtoC",  "description": "消費者同士が直接取引を行うビジネスモデルを何という？",  "setName": "10",  "tier": "II",  "answer": "CtoC",  "correct": "CtoC",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "RFID",  "description": "無線通信を利用して、タグに記録された情報を読み取る技術を何という？",  "setName": "10",  "tier": "I",  "answer": "RFID",  "correct": "RFID",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "コード決済",  "description": "スマートフォンを利用し、QRコードなどを読み取って支払いを行う仕組みを何という？",  "setName": "10",  "tier": "I",  "answer": "ko-dokessai",  "correct": "コード決済",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "VR",  "description": "仮想空間を作り出し、ユーザーがまるで現実のように体験できる技術を何という？",  "setName": "10",  "tier": "I",  "answer": "VR",  "correct": "VR",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "AR",  "description": "現実世界にデジタル情報を重ねて表示し、拡張された体験を提供する技術を何という？",  "setName": "10",  "tier": "I",  "answer": "AR",  "correct": "AR",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "アナログデータ",  "description": "連続した値を持ち、無限の中間値を取ることができるデータ形式は何？",  "setName": "13",  "tier": "I",  "answer": "anarogude-ta",  "correct": "アナログデータ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "デジタルデータ",  "description": "0と1の二進法で表され、離散的な値を持つデータ形式は何？",  "setName": "13",  "tier": "I",  "answer": "dezitarude-ta",  "correct": "デジタルデータ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "bit",  "description": "コンピュータが扱う情報の最小単位で、0または1の値を持つものは何？",  "setName": "13",  "tier": "I",  "answer": "bit",  "correct": "bit",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "Byte",  "description": "8bitをまとめたデータ単位で、ファイルサイズなどの指標として使われるものは何？",  "setName": "13",  "tier": "I",  "answer": "Byte",  "correct": "Byte",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "k",  "description": "情報量の単位で、1000倍を示す接頭辞は何？",  "setName": "13",  "tier": "I",  "answer": "k",  "correct": "k",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "K",  "description": "コンピュータ分野で使われる、1024倍を意味する接頭辞は何？",  "setName": "13",  "tier": "I",  "answer": "K",  "correct": "K",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "Ki",  "description": "1024倍を意味する国際規格として定められた単位は何？",  "setName": "13",  "tier": "I",  "answer": "Ki",  "correct": "Ki",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "2進法",  "description": "コンピュータが情報を処理する際に使用する、0と1の組み合わせで表現される数の表記法は何？",  "setName": "14",  "tier": "I",  "answer": "2susumihou",  "correct": "2進法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "10進数から2進数の変換",  "description": "人間が日常で使う10進数を、コンピュータが理解できる2進数に変換する操作を何という？",  "setName": "14",  "tier": "I",  "answer": "10sinsuukara2sinsuunohenkan",  "correct": "10進数から2進数の変換",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "2進数から10進数の変換",  "description": "2進数で表された数値を、人間が理解しやすい10進数に変換する操作を何という？",  "setName": "14",  "tier": "I",  "answer": "2sinsuukara10sinsuunohenkan",  "correct": "2進数から10進数の変換",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "16進法",  "description": "コンピュータが扱うデータを短く表現するために、0～9とA～Fを使う数値表記法は何？",  "setName": "14",  "tier": "I",  "answer": "16susumihou",  "correct": "16進法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "2進数から16進数の変換",  "description": "2進数を簡潔に表すために、4桁ごとに区切って変換する方法は何？",  "setName": "14",  "tier": "I",  "answer": "2sinsuukara16sinsuunohenkan",  "correct": "2進数から16進数の変換",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "16進数から10進数の変換",  "description": "16進数の数値を、人間が直感的に理解しやすい10進数に変換する操作を何という？",  "setName": "14",  "tier": "I",  "answer": "16sinsuukara10sinsuunohenkan",  "correct": "16進数から10進数の変換",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "10進数から16進数の変換",  "description": "10進数の値を、プログラムやコンピュータ処理に適した16進数に変換する操作を何という？",  "setName": "14",  "tier": "I",  "answer": "10sinsuukara16sinsuunohenkan",  "correct": "10進数から16進数の変換",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "文字コード",  "description": "文字を数値データとしてコンピュータで扱うために定められた規格を何という？",  "setName": "16",  "tier": "I",  "answer": "moziko-do",  "correct": "文字コード",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ASCII",  "description": "7ビットを用いて英数字や記号を表現する、最も基本的な文字コードは何？",  "setName": "16",  "tier": "II",  "answer": "ASCII",  "correct": "ASCII",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "シフトJISコード",  "description": "日本語を表現するために開発された、Windows環境でよく使われる文字コードは何？",  "setName": "16",  "tier": "II",  "answer": "sihutoJISko-do",  "correct": "シフトJISコード",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ユニコード",  "description": "世界中の文字を統一的に扱うために開発された、国際的な文字コードは何？",  "setName": "16",  "tier": "I",  "answer": "yuniko-do",  "correct": "ユニコード",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "文字化け",  "description": "異なる文字コードを使用した際に、正しく表示されず意味不明な文字列になる現象を何という？",  "setName": "16",  "tier": "II",  "answer": "mozibake",  "correct": "文字化け",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "UTF-8",  "description": "ユニコードのエンコーディング方式のひとつで、特にWebで広く使われる文字コードは何？",  "setName": "16",  "tier": "I",  "answer": "UTF-8",  "correct": "UTF-8",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "音の標本化",  "description": "アナログ音声をデジタル化する際に、一定間隔で音の波形を記録する操作を何という？",  "setName": "17",  "tier": "I",  "answer": "onnohyouhonka",  "correct": "音の標本化",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "音の量子化",  "description": "標本化された音の波形データを、一定の段階ごとに数値化する操作を何という？",  "setName": "17",  "tier": "I",  "answer": "onnoryousika",  "correct": "音の量子化",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "音の符号化",  "description": "量子化された音データを、圧縮や伝送のためにエンコードする操作を何という？",  "setName": "17",  "tier": "II",  "answer": "onnohugouka",  "correct": "音の符号化",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "標本化周波数",  "description": "1秒間に音の波形を何回測定するかを示す値を何という？",  "setName": "17",  "tier": "I",  "answer": "hyouhonkasyuuhasuu",  "correct": "標本化周波数",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "量子化ビット数",  "description": "1つの標本化された音のデータを何ビットで表現するかを示す値は何？",  "setName": "17",  "tier": "I",  "answer": "ryousikabittosuu",  "correct": "量子化ビット数",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "音声のデータ量計算",  "description": "音声データのサイズを決める3つの要素は「標本化周波数」「量子化ビット数」ともう一つは何？",  "setName": "17",  "tier": "I",  "answer": "onseinode-taryoukeisan",  "correct": "音声のデータ量計算",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "標本化定理",  "description": "あるアナログ信号を正確にデジタル化するには、どのくらいのサンプリング周波数が必要かを定めた定理は何？",  "setName": "17",  "tier": "I",  "answer": "hyouhonkateiri",  "correct": "標本化定理",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "人間の可聴域",  "description": "人間が聞くことができる音の周波数範囲は何Hzから何Hz？",  "setName": "17",  "tier": "I",  "answer": "ningennokatyouiki",  "correct": "人間の可聴域",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "電話の音質64kbps",  "description": "一般的な電話回線で使用される音声のビットレートは何kbps？",  "setName": "17",  "tier": "I",  "answer": "denwanoonsitu64kbps",  "correct": "電話の音質64kbps",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "CD-DA形式の音質1411.2kbps",  "description": "音楽CDに使われる非圧縮の音声フォーマットのビットレートは何kbps？",  "setName": "17",  "tier": "I",  "answer": "CD-DAkeisikinoonsitu1411.2kbps",  "correct": "CD-DA形式の音質1411.2kbps",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "Hi-Res",  "description": "CD以上の高音質を持つ、ハイレゾリューション音源の略称は何？",  "setName": "17",  "tier": "I",  "answer": "Hi-Res",  "correct": "Hi-Res",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "画像の標本化",  "description": "アナログ画像をデジタル化する際に、一定の間隔で画素の情報を取得する操作を何という？",  "setName": "18",  "tier": "I",  "answer": "gazounohyouhonka",  "correct": "画像の標本化",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "画像の量子化",  "description": "画像の色や明るさを一定の段階に分けて数値化する処理を何という？",  "setName": "18",  "tier": "I",  "answer": "gazounoryousika",  "correct": "画像の量子化",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "画像の符号化",  "description": "量子化された画像データを、効率的に保存・圧縮するための変換を何という？",  "setName": "18",  "tier": "II",  "answer": "gazounohugouka",  "correct": "画像の符号化",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "画素",  "description": "画像を構成する最小の単位で、色や明るさの情報を持つ点を何という？",  "setName": "18",  "tier": "I",  "answer": "gaso",  "correct": "画素",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "解像度",  "description": "画像の細かさを示し、「dpi」や「ppi」などの単位で表される値は何？",  "setName": "18",  "tier": "I",  "answer": "kaizoudo",  "correct": "解像度",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "階調",  "description": "画像の明るさの変化を表し、ビット数によって表現できる段階が変わる概念は何？",  "setName": "18",  "tier": "I",  "answer": "kaityou",  "correct": "階調",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "フルカラー",  "description": "RGB各色8ビット（合計24ビット）で表現される、一般的なカラーモードを何という？",  "setName": "18",  "tier": "I",  "answer": "hurukara-",  "correct": "フルカラー",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "2値画像",  "description": "各ピクセルが「白」か「黒」のどちらかしか持たない画像を何という？",  "setName": "18",  "tier": "I",  "answer": "2tigazou",  "correct": "2値画像",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "画像のデータ量計算",  "description": "画像データのサイズを求めるために必要な3つの要素は「解像度」「色数」ともう一つは何？",  "setName": "18",  "tier": "I",  "answer": "gazounode-taryoukeisan",  "correct": "画像のデータ量計算",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "フレーム",  "description": "動画を構成する静止画1枚1枚を何という？",  "setName": "18",  "tier": "I",  "answer": "hure-mu",  "correct": "フレーム",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "フレームレート",  "description": "1秒間に何枚のフレームを表示するかを示す指標を何という？",  "setName": "18",  "tier": "I",  "answer": "hure-mure-to",  "correct": "フレームレート",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "動画のデータ量計算",  "description": "動画のデータサイズを求めるために必要な3つの要素は「解像度」「フレームレート」ともう一つは何？",  "setName": "18",  "tier": "I",  "answer": "douganode-taryoukeisan",  "correct": "動画のデータ量計算",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "RGB",  "description": "ディスプレイやデジタル画像で使用される、赤・緑・青の3色を基本とする色の表現方法を何という？",  "setName": "18",  "tier": "I",  "answer": "RGB",  "correct": "RGB",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "CMY",  "description": "プリンターなどで使われる、シアン・マゼンタ・イエローの3色を基本とする色の表現方法を何という？",  "setName": "18",  "tier": "I",  "answer": "CMY",  "correct": "CMY",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "CMYK",  "description": "印刷で使われる色の三原色に黒（Key）を加えたカラーモデルは何？",  "setName": "18",  "tier": "I",  "answer": "CMYK",  "correct": "CMYK",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ラスタ形式",  "description": "画像をピクセル（ドット）の集合として表現する形式を何という？",  "setName": "18",  "tier": "II",  "answer": "rasutakeisiki",  "correct": "ラスタ形式",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ベクタ形式",  "description": "直線や曲線、座標データを使って図形を表現する画像形式を何という？",  "setName": "18",  "tier": "II",  "answer": "bekutakeisiki",  "correct": "ベクタ形式",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "色相・明度・彩度",  "description": "色の属性を表す3つの要素「色の種類」「明るさ」「鮮やかさ」のことを何という？",  "setName": "18",  "tier": "I",  "answer": "sikisou・meido・saido",  "correct": "色相・明度・彩度",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "カラーコード",  "description": "色を数値として表現し、Webやデザインで使用される表記方法は何？",  "setName": "18",  "tier": "I",  "answer": "kara-ko-do",  "correct": "カラーコード",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "アスペクト比",  "description": "画像や画面の縦横の比率を示す数値を何という？",  "setName": "18",  "tier": "I",  "answer": "asupekutohi",  "correct": "アスペクト比",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "1080p",  "description": "フルHDの解像度を示し、1920×1080ピクセルの動画フォーマットを何という？",  "setName": "18",  "tier": "I",  "answer": "1080p",  "correct": "1080p",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "可逆圧縮",  "description": "データの品質を損なわずに、ファイルサイズを圧縮する方式を何という？",  "setName": "19",  "tier": "I",  "answer": "kagyakuassyuku",  "correct": "可逆圧縮",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "非可逆圧縮",  "description": "データを削減してサイズを小さくするが、元に戻せない圧縮方式を何という？",  "setName": "19",  "tier": "I",  "answer": "hikagyakuassyuku",  "correct": "非可逆圧縮",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ランレングス圧縮",  "description": "同じデータが連続する部分を、回数を記録して短縮する圧縮方式を何という？",  "setName": "19",  "tier": "I",  "answer": "ranrengusuassyuku",  "correct": "ランレングス圧縮",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ハフマン圧縮",  "description": "頻度の高いデータに短い符号を割り当て、効率的に圧縮する方式を何という？",  "setName": "19",  "tier": "I",  "answer": "hahumanassyuku",  "correct": "ハフマン圧縮",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "動画の圧縮方法",  "description": "フレーム間の差分を利用し、データ量を削減する動画圧縮技術を何という？",  "setName": "19",  "tier": "I",  "answer": "douganoassyukuhouhou",  "correct": "動画の圧縮方法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "拡張子",  "description": "ファイルの種類を識別するために、ファイル名の末尾に付けられる識別子は何？",  "setName": "19",  "tier": "I",  "answer": "kakutyousi",  "correct": "拡張子",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "JPEG",  "description": "非可逆圧縮を採用し、写真の保存に広く使われる画像フォーマットは何？",  "setName": "19",  "tier": "I",  "answer": "JPEG",  "correct": "JPEG",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "PNG",  "description": "可逆圧縮を採用し、透明背景の表現が可能な画像フォーマットは何？",  "setName": "19",  "tier": "I",  "answer": "PNG",  "correct": "PNG",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "GIF",  "description": "256色まで対応し、アニメーション画像を作成できる画像フォーマットは何？",  "setName": "19",  "tier": "I",  "answer": "GIF",  "correct": "GIF",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ボトルネック",  "description": "システム全体の性能を制限する、最も処理速度の遅い部分を何という？",  "setName": "19",  "tier": "I",  "answer": "botorunekku",  "correct": "ボトルネック",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "集合知",  "description": "多くの人が協力して情報を共有・活用することで、個人の知識を超える成果を生む概念を何という？",  "setName": "21",  "tier": "I",  "answer": "syuugouti",  "correct": "集合知",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "匿名性",  "description": "インターネット上で、個人の実名を明かさずに活動できる性質を何という？",  "setName": "22",  "tier": "I",  "answer": "tokumeisei",  "correct": "匿名性",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "サイバーカスケード",  "description": "SNSなどのネット空間で、同じ意見を持つ人が集まり、極端な考え方が強化される現象を何という？",  "setName": "22",  "tier": "I",  "answer": "saiba-kasuke-do",  "correct": "サイバーカスケード",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ポジショントーク",  "description": "自分の利益や立場を優先し、公平性を欠いた意見を述べることを何という？",  "setName": "22",  "tier": "I",  "answer": "pozisyonto-ku",  "correct": "ポジショントーク",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ステルスマーケティング",  "description": "企業が広告と明示せずに宣伝を行い、消費者に影響を与えようとする手法を何という？",  "setName": "22",  "tier": "I",  "answer": "suterusuma-kethingu",  "correct": "ステルスマーケティング",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "フィルターバブル",  "description": "インターネットの検索やSNSのアルゴリズムによって、特定の情報しか目に入らなくなる現象を何という？",  "setName": "22",  "tier": "I",  "answer": "firuta-baburu",  "correct": "フィルターバブル",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "エコーチェンバー",  "description": "SNSやネット上のコミュニティで、同じ意見ばかりが反響し、異なる視点が排除される現象を何という？",  "setName": "22",  "tier": "I",  "answer": "eko-chenba-",  "correct": "エコーチェンバー",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "情報デザイン",  "description": "情報を分かりやすく整理し、視覚的に伝えるためのデザイン手法を何という？",  "setName": "23",  "tier": "I",  "answer": "zyouhoudezain",  "correct": "情報デザイン",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ユーザインタフェース",  "description": "ソフトウェアやアプリが、ユーザーとやり取りするための画面や操作体系を何という？",  "setName": "24",  "tier": "I",  "answer": "yu-zaintafe-su",  "correct": "ユーザインタフェース",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ユーザエクスペリエンス",  "description": "サービスや製品を利用した際の、ユーザーの体験や満足度を総合的に表す概念を何という？",  "setName": "24",  "tier": "I",  "answer": "yu-zaekusuperiensu",  "correct": "ユーザエクスペリエンス",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ユニバーサルデザイン",  "description": "年齢や障害の有無に関係なく、誰もが使いやすいデザインのことを何という？",  "setName": "25",  "tier": "I",  "answer": "yuniba-sarudezain",  "correct": "ユニバーサルデザイン",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "UDフォント",  "description": "視認性が高く、誰にでも読みやすいように設計されたフォントを何という？",  "setName": "25",  "tier": "I",  "answer": "UDfonto",  "correct": "UDフォント",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "明朝体",  "description": "縦線と横線の太さが異なり、筆の流れを表現した日本語の書体は何？",  "setName": "25",  "tier": "I",  "answer": "mintyoutai",  "correct": "明朝体",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ゴシック体",  "description": "縦線と横線の太さが均一で、視認性が高い日本語の書体は何？",  "setName": "25",  "tier": "I",  "answer": "gosikkutai",  "correct": "ゴシック体",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プロポーショナルフォント",  "description": "文字ごとに幅が異なり、自然な間隔で表示されるフォントを何という？",  "setName": "25",  "tier": "I",  "answer": "puropo-syonarufonto",  "correct": "プロポーショナルフォント",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "等幅フォント",  "description": "すべての文字が同じ幅で表示されるフォントを何という？",  "setName": "25",  "tier": "I",  "answer": "touhabafonto",  "correct": "等幅フォント",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "レイアウトの４原則",  "description": "デザインを効果的に見せるための「対比・反復・整列・近接」の原則を何という？",  "setName": "25",  "tier": "I",  "answer": "reiautono４gensoku",  "correct": "レイアウトの４原則",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "コントラスト(対比)",  "description": "デザインの中で、要素の違いを強調し、目立たせるテクニックを何という？",  "setName": "25",  "tier": "I",  "answer": "kontorasuto(taihi)",  "correct": "コントラスト(対比)",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "反復",  "description": "同じデザイン要素を繰り返し使用し、統一感を出すデザイン原則は何？",  "setName": "25",  "tier": "I",  "answer": "hanpuku",  "correct": "反復",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "整列",  "description": "要素を意図的に配置し、視覚的なバランスを整えるデザイン原則を何という？",  "setName": "25",  "tier": "I",  "answer": "seiretu",  "correct": "整列",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "近接",  "description": "関連する要素をまとめ、情報のグループ化を行うデザイン原則を何という？",  "setName": "25",  "tier": "I",  "answer": "kinsetu",  "correct": "近接",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "補助記憶装置",  "description": "データを長期間保存するために使用される記憶装置を何という？",  "setName": "27",  "tier": "II",  "answer": "hozyokiokusouti",  "correct": "補助記憶装置",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ハードディスク",  "description": "磁気を利用してデータを記録・保存する補助記憶装置は何？",  "setName": "27",  "tier": "II",  "answer": "ha-dodhisuku",  "correct": "ハードディスク",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "フラッシュメモリ",  "description": "電気的にデータの書き換えが可能で、不揮発性の半導体記憶装置を何という？",  "setName": "27",  "tier": "II",  "answer": "hurassyumemori",  "correct": "フラッシュメモリ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "SSD",  "description": "半導体メモリを用いてデータを保存し、高速な読み書きを実現する補助記憶装置は何？",  "setName": "27",  "tier": "II",  "answer": "SSD",  "correct": "SSD",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "USBフラッシュメモリ",  "description": "小型で持ち運び可能な、USBポートに接続してデータを保存できる記憶装置を何という？",  "setName": "27",  "tier": "II",  "answer": "USBhurassyumemori",  "correct": "USBフラッシュメモリ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "SDカード",  "description": "デジタルカメラやスマートフォンなどで広く使われる、小型の半導体記憶装置は何？",  "setName": "27",  "tier": "II",  "answer": "SDka-do",  "correct": "SDカード",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "光ディスク",  "description": "レーザーを利用してデータを記録・読み取りする円盤型の記憶装置は何？",  "setName": "27",  "tier": "II",  "answer": "hikaridhisuku",  "correct": "光ディスク",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "記憶装置の廃棄",  "description": "個人情報や機密データを含む記憶装置を安全に処分するために行うべき対策は何？",  "setName": "27",  "tier": "I",  "answer": "kiokusoutinohaiki",  "correct": "記憶装置の廃棄",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "USB",  "description": "データ転送や周辺機器接続のために広く使われる、汎用的な接続規格は何？",  "setName": "27",  "tier": "I",  "answer": "USB",  "correct": "USB",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "OS",  "description": "コンピュータのハードウェアを制御し、アプリケーションを動作させる基本ソフトウェアは何？",  "setName": "28",  "tier": "I",  "answer": "OS",  "correct": "OS",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "CPU",  "description": "コンピュータの「頭脳」とも呼ばれ、計算や制御を行う中心的な部品は何？",  "setName": "28",  "tier": "I",  "answer": "CPU",  "correct": "CPU",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "メモリ",  "description": "プログラムやデータを一時的に記憶し、CPUが高速にアクセスできる装置は何？",  "setName": "28",  "tier": "I",  "answer": "memori",  "correct": "メモリ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "GPU",  "description": "画像処理や動画編集など、高速な並列計算を行うために設計されたプロセッサは何？",  "setName": "28",  "tier": "I",  "answer": "GPU",  "correct": "GPU",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "フリーズする原因",  "description": "コンピュータが操作を受け付けなくなる現象の主な原因は何？",  "setName": "28",  "tier": "I",  "answer": "huri-zusurugenin",  "correct": "フリーズする原因",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "論理回路",  "description": "コンピュータの基本動作を制御する、論理ゲートの組み合わせで作られる回路を何という？",  "setName": "30",  "tier": "I",  "answer": "ronrikairo",  "correct": "論理回路",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "AND回路",  "description": "2つの入力が両方とも1のときに出力が1となる論理回路は何？",  "setName": "30",  "tier": "I",  "answer": "ANDkairo",  "correct": "AND回路",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "OR回路",  "description": "2つの入力のうち、どちらかが1ならば出力が1となる論理回路は何？",  "setName": "30",  "tier": "I",  "answer": "ORkairo",  "correct": "OR回路",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "NOT回路",  "description": "入力が1のときに0を、0のときに1を出力する論理回路は何？",  "setName": "30",  "tier": "I",  "answer": "NOTkairo",  "correct": "NOT回路",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "真理値表",  "description": "論理回路のすべての入力と出力の関係を一覧にまとめた表を何という？",  "setName": "30",  "tier": "I",  "answer": "sinritihyou",  "correct": "真理値表",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "半加算器",  "description": "2つのビットを加算し、桁上げの情報も出力する最も基本的な加算回路を何という？",  "setName": "30",  "tier": "I",  "answer": "hankasanutuwa",  "correct": "半加算器",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "全加算器",  "description": "3つの入力（2つのビット＋桁上げ）を加算し、新たな桁上げを出力する回路を何という？",  "setName": "30",  "tier": "I",  "answer": "zenkasanutuwa",  "correct": "全加算器",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "しきい値",  "description": "アナログ信号をデジタル信号に変換する際、0と1を判定する基準となる値を何という？",  "setName": "30",  "tier": "I",  "answer": "sikiiti",  "correct": "しきい値",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "NAND回路",  "description": "AND回路の出力を反転し、入力が両方とも1のときに0を出力する論理回路を何という？",  "setName": "30",  "tier": "I",  "answer": "NANDkairo",  "correct": "NAND回路",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "XOR回路",  "description": "2つの入力が異なるときに1を出力し、同じときに0を出力する論理回路は何？",  "setName": "30",  "tier": "I",  "answer": "XORkairo",  "correct": "XOR回路",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プログラム:表示",  "description": "画面にメッセージやデータを出力するプログラムの処理を何という？",  "setName": "34",  "tier": "I",  "answer": "puroguramu:hyouzi",  "correct": "プログラム:表示",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プログラム:反復",  "description": "一定の条件が満たされるまで処理を繰り返すプログラムの構造を何という？",  "setName": "34",  "tier": "I",  "answer": "puroguramu:hanpuku",  "correct": "プログラム:反復",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プログラム:条件分岐",  "description": "状況に応じて異なる処理を実行するプログラムの制御構造を何という？",  "setName": "34",  "tier": "I",  "answer": "puroguramu:zyoukenbunki",  "correct": "プログラム:条件分岐",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プログラム:リスト",  "description": "複数のデータを一括で管理するために使われるデータ構造を何という？",  "setName": "34",  "tier": "I",  "answer": "puroguramu:risuto",  "correct": "プログラム:リスト",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プログラム:演算子",  "description": "数値計算や文字列操作などの基本的な計算を行うために使われる記号を何という？",  "setName": "34",  "tier": "I",  "answer": "puroguramu:enzansi",  "correct": "プログラム:演算子",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プログラム:比較演算子",  "description": "2つの値を比較し、条件を判定するために使われる演算子を何という？",  "setName": "34",  "tier": "I",  "answer": "puroguramu:hikakuenzansi",  "correct": "プログラム:比較演算子",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "アルゴリズム",  "description": "問題を解決するための手順やルールを定めたものを何という？",  "setName": "31",  "tier": "I",  "answer": "arugorizumu",  "correct": "アルゴリズム",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "フローチャート",  "description": "プログラムや処理の流れを視覚的に表現するための図を何という？",  "setName": "31",  "tier": "I",  "answer": "huro-tya-to",  "correct": "フローチャート",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "線形探索法",  "description": "配列の要素を先頭から順番に調べて目的の値を見つける探索アルゴリズムを何という？",  "setName": "32",  "tier": "I",  "answer": "senkeitansakuhou",  "correct": "線形探索法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "二分探索法",  "description": "整列されたデータから、真ん中の要素を基準に検索範囲を半分ずつ削減しながら探索するアルゴリズムを何という？",  "setName": "32",  "tier": "I",  "answer": "二huntansakuhou",  "correct": "二分探索法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "選択ソート",  "description": "配列の中から最小（または最大）の要素を順に選んで並べるソートアルゴリズムを何という？",  "setName": "32",  "tier": "II",  "answer": "sentakuso-to",  "correct": "選択ソート",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "バブルソート",  "description": "隣り合う要素を比較しながら並べ替える、基本的なソートアルゴリズムを何という？",  "setName": "32",  "tier": "II",  "answer": "baburuso-to",  "correct": "バブルソート",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "挿入ソート",  "description": "配列の要素を順に適切な位置に挿入しながら並べ替えるソートアルゴリズムを何という？",  "setName": "32",  "tier": "I",  "answer": "sounyuuso-to",  "correct": "挿入ソート",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "浮動小数点",  "description": "小数をコンピュータで表現する際に使われる、指数を用いた数値表現を何という？",  "setName": "33",  "tier": "I",  "answer": "hudousyousuuten",  "correct": "浮動小数点",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "符号部、指数部、仮数部",  "description": "浮動小数点数を構成する3つの要素は何？",  "setName": "33",  "tier": "II",  "answer": "hugoubu、sisuubu、kasuubu",  "correct": "符号部、指数部、仮数部",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "倍精度浮動小数点",  "description": "64ビットで表現され、より高い精度を持つ浮動小数点の表現形式を何という？",  "setName": "33",  "tier": "II",  "answer": "baiseidohudousyousuuten",  "correct": "倍精度浮動小数点",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "計算誤差",  "description": "浮動小数点演算において、丸め処理などによって発生する誤差を何という？",  "setName": "33",  "tier": "I",  "answer": "keisangosa",  "correct": "計算誤差",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "モンテカルロ法",  "description": "乱数を用いて統計的に近似解を求めるシミュレーション手法を何という？",  "setName": "35",  "tier": "I",  "answer": "montekarurohou",  "correct": "モンテカルロ法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プログラム:関数",  "description": "一連の処理をまとめ、必要に応じて呼び出して利用できるプログラムの構造を何という？",  "setName": "35",  "tier": "I",  "answer": "puroguramu:kansuu",  "correct": "プログラム:関数",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プログラム:引数",  "description": "関数を呼び出す際に、関数に渡されるデータのことを何という？",  "setName": "35",  "tier": "I",  "answer": "puroguramu:hikisuu",  "correct": "プログラム:引数",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プログラム:戻り値",  "description": "関数が処理の結果として返す値を何という？",  "setName": "35",  "tier": "I",  "answer": "puroguramu:modoriti",  "correct": "プログラム:戻り値",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プログラム:組み込み関数",  "description": "プログラミング言語に標準で用意され、特定の機能を提供する関数を何という？",  "setName": "35",  "tier": "I",  "answer": "puroguramu:kumikomikansuu",  "correct": "プログラム:組み込み関数",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プログラム:ライブラリ",  "description": "プログラムで使用できる、特定の機能をまとめた再利用可能なコードの集まりを何という？",  "setName": "35",  "tier": "I",  "answer": "puroguramu:raiburari",  "correct": "プログラム:ライブラリ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "再帰関数",  "description": "自分自身を呼び出す関数を何という？",  "setName": "35",  "tier": "I",  "answer": "saikikansuu",  "correct": "再帰関数",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "API",  "description": "異なるソフトウェア同士がデータや機能をやり取りするためのインターフェースを何という？",  "setName": "35",  "tier": "I",  "answer": "API",  "correct": "API",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "JSON",  "description": "軽量なデータ交換フォーマットで、キーと値のペアを持つ構造のデータ形式を何という？",  "setName": "35",  "tier": "I",  "answer": "JSON",  "correct": "JSON",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "csv",  "description": "各データをカンマ「,」で区切って記述する、表形式のデータフォーマットを何という？",  "setName": "35",  "tier": "I",  "answer": "csv",  "correct": "csv",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "シミュレーション",  "description": "現実の状況を仮想環境で再現し、結果を予測・分析する手法を何という？",  "setName": "37",  "tier": "I",  "answer": "simyure-syon",  "correct": "シミュレーション",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "回線交換方式",  "description": "通信の際、通信相手ごとに専用の経路を確保する方式を何という？",  "setName": "41",  "tier": "I",  "answer": "kaisenkoukanhousiki",  "correct": "回線交換方式",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "パケット交換方式",  "description": "データを小さな単位に分割し、最適な経路を選びながら送信する通信方式を何という？",  "setName": "41",  "tier": "I",  "answer": "pakettokoukanhousiki",  "correct": "パケット交換方式",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "bps",  "description": "データ通信速度を表し、1秒間に送受信できるビット数の単位は何？",  "setName": "41",  "tier": "I",  "answer": "bps",  "correct": "bps",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "5G",  "description": "第5世代移動通信システムで、高速・低遅延・多数同時接続を特徴とする通信技術を何という？",  "setName": "41",  "tier": "I",  "answer": "5G",  "correct": "5G",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プロトコル",  "description": "ネットワーク通信における、データの送受信のルールを何という？",  "setName": "41",  "tier": "I",  "answer": "purotokoru",  "correct": "プロトコル",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "TCP/IP",  "description": "インターネット通信の基本となる、データの分割・送信・再構成を行うプロトコルは何？",  "setName": "41",  "tier": "I",  "answer": "TCP/IP",  "correct": "TCP/IP",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "IPアドレス",  "description": "インターネット上で、各デバイスに割り当てられる識別番号を何という？",  "setName": "41",  "tier": "I",  "answer": "IPadoresu",  "correct": "IPアドレス",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "MACアドレス",  "description": "ネットワーク機器ごとに固有に割り当てられた、物理アドレスを何という？",  "setName": "41",  "tier": "I",  "answer": "MACadoresu",  "correct": "MACアドレス",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "プライベートIPアドレス",  "description": "企業や家庭内のネットワークで使用され、外部のインターネットには直接接続されないIPアドレスを何という？",  "setName": "41",  "tier": "I",  "answer": "puraibe-toIPadoresu",  "correct": "プライベートIPアドレス",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "衛星通信",  "description": "地球上の離れた地点同士を、宇宙を介してデータを送受信する通信方式を何という？",  "setName": "41",  "tier": "II",  "answer": "eiseituusin",  "correct": "衛星通信",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "電波の速度",  "description": "無線通信において、電波はどのような速さで伝わるか？",  "setName": "41",  "tier": "I",  "answer": "denpanosokudo",  "correct": "電波の速度",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "海底ケーブル",  "description": "大陸間のインターネット通信の大部分を担う、海底に敷設された通信インフラを何という？",  "setName": "41",  "tier": "II",  "answer": "kaiteike-buru",  "correct": "海底ケーブル",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "URL",  "description": "Webサイトのアドレスを示し、特定のページやリソースを指定する文字列を何という？",  "setName": "42",  "tier": "I",  "answer": "URL",  "correct": "URL",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ブラウザ",  "description": "Webページを閲覧するためのソフトウェアを何という？",  "setName": "42",  "tier": "I",  "answer": "burauza",  "correct": "ブラウザ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ドメイン名",  "description": "インターネット上のサーバーを識別し、IPアドレスの代わりに使用される名前を何という？",  "setName": "42",  "tier": "I",  "answer": "domeinmei",  "correct": "ドメイン名",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "DNS",  "description": "ドメイン名とIPアドレスを対応付けるシステムを何という？",  "setName": "42",  "tier": "I",  "answer": "DNS",  "correct": "DNS",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "DNSサーバ",  "description": "ドメイン名をIPアドレスに変換する処理を行うサーバを何という？",  "setName": "42",  "tier": "I",  "answer": "DNSsa-ba",  "correct": "DNSサーバ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ルートDNSサーバ",  "description": "インターネット上のドメイン名の管理を行い、DNSの基盤となるサーバを何という？",  "setName": "42",  "tier": "I",  "answer": "ru-toDNSsa-ba",  "correct": "ルートDNSサーバ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "サブドメイン",  "description": "メインのドメインに対して、さらに階層を追加したアドレスを何という？",  "setName": "42",  "tier": "I",  "answer": "sabudomein",  "correct": "サブドメイン",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "公開鍵暗号方式",  "description": "送信者と受信者が異なる鍵を使って暗号化と復号を行う方式を何という？",  "setName": "43",  "tier": "II",  "answer": "koukaikagiangouhousiki",  "correct": "公開鍵暗号方式",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "HTTPS",  "description": "Webサイトの通信を暗号化し、安全なデータ送受信を行うプロトコルを何という？",  "setName": "43",  "tier": "I",  "answer": "HTTPS",  "correct": "HTTPS",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "RSA暗号",  "description": "2つの大きな素数を利用し、公開鍵と秘密鍵を生成する暗号方式を何という？",  "setName": "43",  "tier": "II",  "answer": "RSAangou",  "correct": "RSA暗号",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ブロックチェーン",  "description": "取引データを分散的に記録し、不正改ざんを防ぐ技術を何という？",  "setName": "44",  "tier": "I",  "answer": "burokkuche-n",  "correct": "ブロックチェーン",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "生体認証",  "description": "指紋や顔認証など、個人の身体的特徴を用いた認証方式を何という？",  "setName": "44",  "tier": "II",  "answer": "seitaininsyou",  "correct": "生体認証",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "オープンデータ",  "description": "誰でも自由に利用・再配布できる、公開されたデータを何という？",  "setName": "45",  "tier": "II",  "answer": "o-punde-ta",  "correct": "オープンデータ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "オープンソース",  "description": "ソースコードが公開され、誰でも自由に利用・改良できるソフトウェアを何という？",  "setName": "45",  "tier": "I",  "answer": "o-punso-su",  "correct": "オープンソース",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "バックアップ",  "description": "データの消失に備え、重要なデータを別の場所に保存することを何という？",  "setName": "46",  "tier": "I",  "answer": "bakkuappu",  "correct": "バックアップ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "差分バックアップ",  "description": "直近のフルバックアップ以降に変更されたデータのみを保存するバックアップ方法を何という？",  "setName": "46",  "tier": "I",  "answer": "sabunbakkuappu",  "correct": "差分バックアップ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "チェックディジット",  "description": "数字列の誤りを検出するために付与される、特定の計算によって求められる値を何という？",  "setName": "46",  "tier": "I",  "answer": "chekkudhizitto",  "correct": "チェックディジット",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "パリティチェック",  "description": "送信データに1ビットを追加し、データの誤りを検出する方法を何という？",  "setName": "46",  "tier": "I",  "answer": "parithichekku",  "correct": "パリティチェック",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "フェイルセーフ",  "description": "システムが異常を検知した際に、安全な状態に移行する設計思想を何という？",  "setName": "46",  "tier": "II",  "answer": "feiruse-hu",  "correct": "フェイルセーフ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "フールプルーフ",  "description": "利用者が誤った操作をしても、重大な事故や障害が発生しないように設計する考え方を何という？",  "setName": "46",  "tier": "II",  "answer": "hu-rupuru-hu",  "correct": "フールプルーフ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ビッグデータ",  "description": "多様で膨大な量のデータを収集・解析し、価値ある情報を得る技術を何という？",  "setName": "47",  "tier": "I",  "answer": "biggude-ta",  "correct": "ビッグデータ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "構造化データ",  "description": "データベースの表形式など、一定の規則に従って整理されたデータを何という？",  "setName": "47",  "tier": "I",  "answer": "kouzoukade-ta",  "correct": "構造化データ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "リレーショナルデータベース",  "description": "データを表形式で管理し、関連する情報を結びつけるデータベースを何という？",  "setName": "47",  "tier": "I",  "answer": "rire-syonarude-tabe-su",  "correct": "リレーショナルデータベース",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "非構造化データ",  "description": "テキストや画像、音声データなど、決まった形式を持たないデータを何という？",  "setName": "47",  "tier": "I",  "answer": "hikouzoukade-ta",  "correct": "非構造化データ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "表記揺れ",  "description": "データベースにおいて、同じ意味を持つが異なる表記が混在する現象を何という？",  "setName": "47",  "tier": "I",  "answer": "hyoukiyure",  "correct": "表記揺れ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "データの正規化",  "description": "データベースの冗長性を排除し、データの一貫性を保つための処理を何という？",  "setName": "48",  "tier": "I",  "answer": "de-tanoseikika",  "correct": "データの正規化",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "質的データ",  "description": "数値ではなく、カテゴリや属性などの特徴を持つデータを何という？",  "setName": "49",  "tier": "I",  "answer": "situtekide-ta",  "correct": "質的データ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "量的データ",  "description": "数値として扱えるデータで、計算や統計処理が可能なものを何という？",  "setName": "49",  "tier": "I",  "answer": "ryoutekide-ta",  "correct": "量的データ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "名義尺度",  "description": "データをカテゴリーに分類するが、順序がない尺度を何という？",  "setName": "49",  "tier": "I",  "answer": "meigisyakudo",  "correct": "名義尺度",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "順序尺度",  "description": "データに順序はあるが、数値の間隔に意味がない尺度を何という？",  "setName": "49",  "tier": "I",  "answer": "zyunzyosyakudo",  "correct": "順序尺度",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "間隔尺度",  "description": "数値の間隔に意味があるが、絶対的なゼロ点が存在しない尺度を何という？",  "setName": "49",  "tier": "I",  "answer": "kankakusyakudo",  "correct": "間隔尺度",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "比例尺度",  "description": "数値の間隔に意味があり、絶対的なゼロ点を持つ尺度を何という？",  "setName": "49",  "tier": "I",  "answer": "hireisyakudo",  "correct": "比例尺度",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "代表値",  "description": "データの中心的な値を表し、平均値・中央値・最頻値などが含まれる統計指標を何という？",  "setName": "49",  "tier": "I",  "answer": "daihyouti",  "correct": "代表値",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "欠損値",  "description": "データの中で、本来あるべき情報が抜けている状態を何という？",  "setName": "49",  "tier": "I",  "answer": "kessonti",  "correct": "欠損値",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "外れ値",  "description": "データの中で、他の値と大きく異なり、異常と思われる値を何という？",  "setName": "49",  "tier": "I",  "answer": "hazureti",  "correct": "外れ値",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "異常値",  "description": "通常のデータとは異なり、異常や異変を示す値を何という？",  "setName": "49",  "tier": "I",  "answer": "izyouti",  "correct": "異常値",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "データの可視化",  "description": "データをグラフや図表を用いて直感的に理解しやすくする手法を何という？",  "setName": "50",  "tier": "I",  "answer": "de-tanokasika",  "correct": "データの可視化",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "詐欺グラフ",  "description": "意図的に見せ方を操作し、データを誤解させるように作られたグラフを何という？",  "setName": "50",  "tier": "I",  "answer": "sagigurahu",  "correct": "詐欺グラフ",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "メラビアンの法則",  "description": "コミュニケーションにおいて、言語情報よりも視覚・聴覚情報の影響が大きいことを示した法則を何という？",  "setName": "50",  "tier": "II",  "answer": "merabiannohousoku",  "correct": "メラビアンの法則",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "テキストマイニング",  "description": "文章データを分析し、有益な情報を抽出するデータ分析手法を何という？",  "setName": "50",  "tier": "I",  "answer": "tekisutomainingu",  "correct": "テキストマイニング",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "自然言語",  "description": "人間が日常的に使う言葉で、文法や意味のある文章を構成するものを何という？",  "setName": "50",  "tier": "I",  "answer": "sizengengo",  "correct": "自然言語",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "形態素解析",  "description": "自然言語を単語レベルに分解し、文法的な要素を分析する処理を何という？",  "setName": "50",  "tier": "I",  "answer": "keitaisokaiseki",  "correct": "形態素解析",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "大規模言語モデル",  "description": "人間の言語を理解・生成するために、大量のテキストデータを学習したAIモデルを何という？",  "setName": "50",  "tier": "I",  "answer": "daikibogengomoderu",  "correct": "大規模言語モデル",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "GPT",  "description": "大規模なテキストデータを学習し、自然な文章を生成できるAIモデルの名称は何？",  "setName": "50",  "tier": "I",  "answer": "GPT",  "correct": "GPT",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "ChatGPT",  "description": "GPTを基盤に開発され、会話形式で質問応答ができるAIシステムを何という？",  "setName": "50",  "tier": "I",  "answer": "ChatGPT",  "correct": "ChatGPT",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "仮説検定",  "description": "データを基に、ある仮説が正しいかどうかを統計的に検証する手法を何という？",  "setName": "51",  "tier": "I",  "answer": "kasetukentei",  "correct": "仮説検定",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "全数調査",  "description": "対象となる集団すべてを調査し、データを収集する手法を何という？",  "setName": "51",  "tier": "I",  "answer": "zensuutyousa",  "correct": "全数調査",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "標本調査",  "description": "集団の一部を無作為に抽出し、そのデータを基に全体の傾向を推測する調査手法を何という？",  "setName": "51",  "tier": "I",  "answer": "hyouhontyousa",  "correct": "標本調査",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "層別抽出法",  "description": "母集団をいくつかの層に分類し、それぞれの層から無作為に標本を抽出する方法を何という？",  "setName": "51",  "tier": "I",  "answer": "soubetutyuusyutuhou",  "correct": "層別抽出法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "単純無作為抽出法",  "description": "母集団から標本を無作為に選び、すべての要素が等しく選ばれる可能性を持つ抽出法を何という？",  "setName": "51",  "tier": "I",  "answer": "tanzyunmusakuityuusyutuhou",  "correct": "単純無作為抽出法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "帰無仮説",  "description": "仮説検定において、「差がない」「効果がない」などの仮説を何という？",  "setName": "51",  "tier": "II",  "answer": "kimukasetu",  "correct": "帰無仮説",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "相関関係",  "description": "2つの変数が統計的に関係があるが、因果関係があるとは限らない関係を何という？",  "setName": "52",  "tier": "I",  "answer": "soukankankei",  "correct": "相関関係",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "因果関係",  "description": "ある要因が別の要因を直接引き起こす関係を何という？",  "setName": "52",  "tier": "I",  "answer": "ingakankei",  "correct": "因果関係",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "因果関係3つの基準",  "description": "因果関係を示すために必要な「時間的順序」「共変動」「他の要因の排除」の3つを何という？",  "setName": "52",  "tier": "I",  "answer": "ingakankei3tunokizyun",  "correct": "因果関係3つの基準",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "交絡因子",  "description": "2つの変数の関係に影響を与え、本来の因果関係を歪める要素を何という？",  "setName": "52",  "tier": "I",  "answer": "kougaramiinsi",  "correct": "交絡因子",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "疑似相関",  "description": "実際には因果関係がないにも関わらず、統計的に強い相関があるように見える現象を何という？",  "setName": "52",  "tier": "I",  "answer": "gizisoukan",  "correct": "疑似相関",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "単回帰分析",  "description": "1つの独立変数を用いて、従属変数の予測を行う統計的手法を何という？",  "setName": "52",  "tier": "I",  "answer": "tankaikibunseki",  "correct": "単回帰分析",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "最小二乗法",  "description": "回帰分析において、誤差の二乗和を最小にする直線を求める方法を何という？",  "setName": "52",  "tier": "I",  "answer": "saisyouzizyouhou",  "correct": "最小二乗法",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "独立変数",  "description": "回帰分析において、結果に影響を与える説明変数を何という？",  "setName": "52",  "tier": "I",  "answer": "dokurituhensuu",  "correct": "独立変数",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+      { "keyword": "従属変数",  "description": "回帰分析において、独立変数によって影響を受ける変数を何という？",  "setName": "52",  "tier": "I",  "answer": "zyuuzokuhensuu",  "correct": "従属変数",  "timesPresented": "0",  "timesCorrect": "0",  "lastCorrectDate": ""}, 
+    ];
+
+   /********** レベル判定用テーブル **********/
+   const levelTable = [
+      { score: 0, level: "E-" },
+      { score: 22, level: "E" },
+      { score: 39, level: "E+" },
+      { score: 56, level: "D-" },
+      { score: 73, level: "D" },
+      { score: 90, level: "D+" },
+      { score: 107, level: "C-" },
+      { score: 124, level: "C" },
+      { score: 141, level: "C+" },
+      { score: 158, level: "B-" },
+      { score: 175, level: "B" },
+      { score: 192, level: "B+" },
+      { score: 209, level: "A-" },
+      { score: 226, level: "A" },
+      { score: 243, level: "A+" },
+      { score: 260, level: "S" },
+      { score: 277, level: "Good!" },
+      { score: 300, level: "Fast" },
+      { score: 325, level: "Thunder" },
+      { score: 350, level: "Ninja" },
+      { score: 375, level: "Comet" },
+      { score: 400, level: "Professor" },
+      { score: 450, level: "LaserBeam" },
+      { score: 500, level: "EddieVH" }
+    ];
+    const levelColors = {
+      "E-": "#5563DE",
+      "E": "#5563DE",
+      "E+": "#5563DE",
+      "D-": "#5563DE",
+      "D": "#5563DE",
+      "D+": "#5563DE",
+      "C-": "#5563DE",
+      "C": "#5563DE",
+      "C+": "#5563DE",
+      "B-": "#5563DE",
+      "B": "#5563DE",
+      "B+": "#5563DE",
+      "A-": "#5563DE",
+      "A": "#5563DE",
+      "A+": "#5563DE",
+      "S": "#5563DE",
+      "Good!": "#5563DE",
+      "Fast": "#5563DE",
+      "Thunder": "#5563DE",
+      "Ninja": "#5563DE",
+      "Comet": "#5563DE",
+      "Professor": "#5563DE",
+      "LaserBeam": "#5563DE",
+      "EddieVH": "#5563DE"
+    };
+    function getLevelInfo(score) {
+      let current = levelTable[0];
+      for (let i = 1; i < levelTable.length; i++) {
+        if (score >= levelTable[i].score) {
+          current = levelTable[i];
+        } else {
+          break;
+        }
+      }
+      return {
+        level: current.level,
+        color: levelColors[current.level] || "#000"
+      };
+    }
+    function getPointsToNextLevel(roundedScore) {
+      for (let i = 0; i < levelTable.length; i++) {
+        if (roundedScore < levelTable[i].score) {
+          return levelTable[i].score - roundedScore;
+        }
+      }
+      return 0;
+    }
+
+    /********** グローバル変数 **********/
+    let startTime;
+    let showAnswerFromBeginning = false;
+    let liveStatsIntervalId;
+    let accumulatedActiveTime = 0;
+    let questionStartTime = null;
+    let currentIndex = 0;
+    let currentAnswer = "";
+    let totalKeystrokes = 0;
+    let mistakeCount = 0;
+    let gameQuestions = []; // 出題に使う問題群
+    let questionInProgress = false; // 問題進行中かどうか
+    let userInput = "";  // ユーザーが入力した文字列（累積）
+    // どちらの方式で比較するか。初期は null（未決定）
+    let activeConversionStyle = null;
+
+    /********** DOM要素取得 **********/
+    const startScreen = document.getElementById("start-screen");
+    const waitingScreen = document.getElementById("waiting-screen");
+    const waitingCountdown = document.getElementById("waiting-countdown");
+    const gameScreen = document.getElementById("game-screen");
+    const resultScreen = document.getElementById("result-screen");
+    const dataEditor = document.getElementById("data-editor");
+    const dataTextarea = document.getElementById("data-textarea");
+    const startButton = document.getElementById("start-button");
+    const editDataButton = document.getElementById("edit-data-button");
+    const updateDataButton = document.getElementById("update-data-button");
+    const cancelDataButton = document.getElementById("cancel-data-button");
+    const restartButton = document.getElementById("restart-button");
+    const homeButton = document.getElementById("home-button");
+    const progressDisplay = document.getElementById("progress");
+    const descriptionDisplay = document.getElementById("description");
+    const typedDisplay = document.getElementById("typed-display");
+    const correctAnswerDisplay = document.getElementById("correct-answer-display");
+    const inputField = document.getElementById("input-field");
+    const feedbackDisplay = document.getElementById("feedback");
+    const resultMessage = document.getElementById("result-message");
+    const liveStatsDisplay = document.getElementById("live-stats");
+    const showAnswerToggle = document.getElementById("show-answer-toggle");
+    const resultHeader = document.getElementById("result-header");
+    const setSelector = document.getElementById("set-selector");
+
+    /********** 変換関数（長い文字列から順に置換） **********/
+    // ヘボン式に変換
+    function convertToHepburn(str) {
+      str = str.toLowerCase();
+      // 訓令→ヘボン
+      str = str.replace(/sya/g, "sha");
+      str = str.replace(/syu/g, "shu");
+      str = str.replace(/syo/g, "sho");
+      str = str.replace(/si/g, "shi");
+      str = str.replace(/tya/g, "cha");
+      str = str.replace(/tyu/g, "chu");
+      str = str.replace(/tye/g, "che");
+      str = str.replace(/tyo/g, "cho");
+      str = str.replace(/ti/g, "chi");
+      str = str.replace(/tu/g, "tsu");
+      str = str.replace(/hu/g, "fu");
+      str = str.replace(/zya/g, "ja");
+      str = str.replace(/zyu/g, "ju");
+      str = str.replace(/zye/g, "je");
+      str = str.replace(/zyo/g, "jo");
+      str = str.replace(/zi/g, "ji");
+      
+      return str;
+    }
+    // 訓令式に変換
+    function convertToKunrei(str) {
+      str = str.toLowerCase();
+      // ヘボン→訓令
+      str = str.replace(/sha/g, "sya");
+      str = str.replace(/shu/g, "syu");
+      str = str.replace(/she/g, "sye");
+      str = str.replace(/sho/g, "syo");
+      str = str.replace(/shi/g, "si");
+      str = str.replace(/cha/g, "tya");
+      str = str.replace(/chu/g, "tyu");
+      str = str.replace(/che/g, "tye");
+      str = str.replace(/cho/g, "tyo");
+      str = str.replace(/chi/g, "ti");
+      str = str.replace(/tsu/g, "tu");
+      str = str.replace(/fu/g, "hu");
+      str = str.replace(/ja/g, "zya");
+      str = str.replace(/ju/g, "zyu");
+      str = str.replace(/je/g, "zye");
+      str = str.replace(/jo/g, "zyo");
+      str = str.replace(/ji/g, "zi");
+      
+      return str;
+    }
+    
+    // 記録された答えの方式を簡易判定（「shi」があればヘボン、「si」があれば訓令とする例）
+    function detectRecordedStyle(answer) {
+      answer = answer.toLowerCase();
+      if (answer.indexOf("shi") !== -1 || answer.indexOf("chi") !== -1 || answer.indexOf("tsu") !== -1 || answer.indexOf("fu") !== -1 || answer.indexOf("j") !== -1) {
+        return "hepburn";
+      }
+      if (answer.indexOf("si") !== -1 || answer.indexOf("ti") !== -1 || answer.indexOf("tu") !== -1 || answer.indexOf("hu") !== -1 || answer.indexOf("z") !== -1) {
+        return "kunrei";
+      }
+      // どちらとも判定できなければ、デフォルトはヘボン
+      return "hepburn";
+    }
+        
+    /********** キーボード関連 **********/
+    function getFingerForKey(letter) {
+      letter = letter.toLowerCase();
+      if (['q', 'a', 'z'].includes(letter)) return "左小指";
+      if (['w', 's', 'x'].includes(letter)) return "左薬指";
+      if (['e', 'd', 'c'].includes(letter)) return "左中指";
+      if (['r', 't', 'f', 'g', 'v', 'b'].includes(letter)) return "左人差し指";
+      if (['y', 'u', 'h', 'j', 'n', 'm'].includes(letter)) return "右人差し指";
+      if (['i', 'k'].includes(letter)) return "右中指";
+      if (['o', 'l'].includes(letter)) return "右薬指";
+      if (['p'].includes(letter)) return "右小指";
+      return "";
+    }
+    function updateKeyboardDisplay() {
+      const normAnswer = normalizeRoman(currentAnswer);
+      const normUser = normalizeRoman(userInput);
+      const nextLetter = normAnswer.charAt(normUser.length);
+      document.querySelectorAll("#keyboard .key").forEach(el => el.classList.remove("active-key"));
+      if (nextLetter) {
+        const activeKey = document.querySelector(`#keyboard .key[data-key="${nextLetter}"]`);
+        if (activeKey) activeKey.classList.add("active-key");
+        const finger = getFingerForKey(nextLetter);
+        document.getElementById("finger-display").textContent = `次のキー: ${nextLetter.toUpperCase()} （使用指: ${finger}）`;
+      } else {
+        document.getElementById("finger-display").textContent = "";
+      }
+    }
+
+    /********** ライブスタッツ更新 **********/
+    function updateLiveStats() {
+      let activeTime;
+      if (questionInProgress && questionStartTime !== null) {
+        activeTime = accumulatedActiveTime + (Date.now() - questionStartTime);
+      } else {
+        activeTime = accumulatedActiveTime;
+      }
+      const minutes = activeTime / 1000 / 60;
+      const kpm = minutes > 0 ? totalKeystrokes / minutes : 0;
+      const accuracy = totalKeystrokes ? 1 - (mistakeCount / totalKeystrokes) : 1;
+      const score = kpm * Math.pow(accuracy, 3);
+      liveStatsDisplay.innerHTML = `KPM: ${kpm.toFixed(2)}<br>
+                                    正答率: ${(accuracy * 100).toFixed(2)}%<br>
+                                    スコア: ${score.toFixed(2)}`;
+    }
+
+    /********** 待機画面によるゲーム開始 **********/
+    function startGameWithCountdown() {
+      startScreen.style.display = "none";
+      waitingScreen.style.display = "block";
+      let countdown = 2;
+      waitingCountdown.textContent = countdown;
+      let intervalId = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+          waitingCountdown.textContent = countdown;
+        } else {
+          clearInterval(intervalId);
+          waitingScreen.style.display = "none";
+          startGameInternal();
+        }
+      }, 1000);
+    }
+
+    /********** ゲーム開始（出題順序変更：正解回数・最新正解日順） **********/
+    function startGameInternal() {
+      showAnswerFromBeginning = showAnswerToggle.checked;
+      // 選択された問題集を取得
+      const selectedSets = [];
+      document.querySelectorAll('input[name="setOption"]:checked').forEach(checkbox => {
+        selectedSets.push(checkbox.value);
+      });
+      // フィルタリング
+      let filtered = keywords.filter(item => selectedSets.includes(item.setName));
+      // ソート：正解回数が少ない順、かつ同じ場合は最新正解日が古い（空なら最古とみなす）
+      filtered.sort((a, b) => {
+        let diff = (parseInt(a.timesCorrect) - parseInt(b.timesCorrect));
+        if (diff !== 0) return diff;
+        let dateA = a.lastCorrectDate ? new Date(a.lastCorrectDate) : new Date(0);
+        let dateB = b.lastCorrectDate ? new Date(b.lastCorrectDate) : new Date(0);
+        return dateA - dateB;
+      });
+      // 10問に満たない場合は、配列を繰り返して10問にする
+      if (filtered.length < 10) {
+          gameQuestions = [];
+          while (gameQuestions.length < 10) {
+              gameQuestions = gameQuestions.concat(filtered);
+          }
+          gameQuestions = gameQuestions.slice(0, 10);
+      } else {
+          gameQuestions = filtered.slice(0, 10);
+      }
+
+      currentIndex = 0;
+      totalKeystrokes = 0;
+      mistakeCount = 0;
+      accumulatedActiveTime = 0;
+      questionStartTime = null;
+      resultScreen.style.display = "none";
+      gameScreen.style.display = "block";
+      showNextKeyword();
+      if (liveStatsIntervalId) clearInterval(liveStatsIntervalId);
+      liveStatsIntervalId = setInterval(updateLiveStats, 1000);
+    }
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    /********** 問題表示 **********/
+    function showNextKeyword() {
+      if (currentIndex >= gameQuestions.length) {
+        endGame();
+        return;
+      }
+      feedbackDisplay.textContent = "";
+      if (showAnswerFromBeginning) {
+        correctAnswerDisplay.textContent = gameQuestions[currentIndex].answer;
+      } else {
+        correctAnswerDisplay.textContent = "";
+      }
+      gameQuestions[currentIndex].timesPresented++;
+      progressDisplay.textContent = `問題 ${currentIndex + 1} / ${gameQuestions.length}`;
+      descriptionDisplay.textContent = gameQuestions[currentIndex].description;
+      currentAnswer = gameQuestions[currentIndex].answer;
+      // ここで userInput を初期化（新しい問題ごとに）
+      userInput = "";
+      activeConversionStyle = null;  // 新問題ごとにリセット
+      currentAnswer = gameQuestions[currentIndex].answer;
+      updateDisplay();
+      questionInProgress = true;
+      inputField.value = "";
+      inputField.focus();
+      questionStartTime = Date.now();
+      document.getElementById("question-info").innerHTML = `Tier: ${gameQuestions[currentIndex].tier} | 正解回数: ${gameQuestions[currentIndex].timesCorrect} | 最新正解日: ${gameQuestions[currentIndex].lastCorrectDate || '-'}`;
+    }
+
+    /********** 表示更新 **********/
+    function updateDisplay() {
+      let convertedAnswer = (activeConversionStyle === "kunrei") ? convertToKunrei(currentAnswer) : convertToHepburn(currentAnswer);
+      // ※activeConversionStyleが null の場合は、ここでは両方とも同じように見える（デフォルトは convertToHepburn などでもよい）
+      if (!activeConversionStyle) {
+        convertedAnswer = convertToHepburn(currentAnswer);
+      }
+      let convertedUser = (activeConversionStyle === "kunrei") ? convertToKunrei(userInput) : convertToHepburn(userInput);
+      let displayHTML = "";
+      for (let i = 0; i < convertedAnswer.length; i++) {
+        if (i < convertedUser.length) {
+          displayHTML += `<span style="color:black;font-weight:bold;">${convertedAnswer.charAt(i)}</span>`;
+        } else {
+          displayHTML += `<span style="color:#ccc;">_</span>`;
+        }
+      }
+      typedDisplay.innerHTML = displayHTML;
+    }
+
+    /********** キー入力処理 **********/
+    inputField.addEventListener("keydown", function(e) {
+      e.preventDefault();
+      if (!questionInProgress) return;
+      if (e.key.length !== 1) return;
+      
+      // 1文字追加
+      let prevUserInput = userInput;
+      userInput += e.key.toLowerCase();
+      totalKeystrokes++;
+      
+      // activeConversionStyle 未決定の場合、両方式の答えを用意してユーザー入力と比較
+      if (!activeConversionStyle) {
+        let hepAnswer = convertToHepburn(currentAnswer);
+        let kunreiAnswer = convertToKunrei(currentAnswer);
+        let len = userInput.length;
+        let userPart = userInput; // 既に小文字にしている
+        let hepPart = hepAnswer.substring(0, len);
+        let kunreiPart = kunreiAnswer.substring(0, len);
+        let matchHep = (userPart === hepPart);
+        let matchKunrei = (userPart === kunreiPart);
+        if (matchHep && !matchKunrei) {
+          activeConversionStyle = "hepburn";
+        } else if (matchKunrei && !matchHep) {
+          activeConversionStyle = "kunrei";
+        } else if (matchHep && matchKunrei) {
+          // 両方にマッチする場合は、記録された答えの方式で決定
+          activeConversionStyle = detectRecordedStyle(currentAnswer);
+        } else {
+          // どちらにもマッチしなければ、入力を取り消す
+          mistakeCount++;
+          flashBackground();
+          userInput = prevUserInput;
+          updateDisplay();
+          correctAnswerDisplay.textContent = currentAnswer;
+          return;
+        }
+      }
+      
+      // activeConversionStyle 決定後は、答えと入力の両方をその方式に変換して比較
+      let convertedAnswer = (activeConversionStyle === "hepburn") ? convertToHepburn(currentAnswer) : convertToKunrei(currentAnswer);
+      let convertedUser = (activeConversionStyle === "hepburn") ? convertToHepburn(userInput) : convertToKunrei(userInput);
+      
+      if (convertedAnswer.startsWith(convertedUser)) {
+        updateDisplay();
+        // 完全一致なら正解処理
+        if (convertedAnswer === convertedUser) {
+          questionInProgress = false;
+          // ここで正解数や最新正解日を更新
+          gameQuestions[currentIndex].timesCorrect++;
+          gameQuestions[currentIndex].lastCorrectDate = new Date().toLocaleDateString();
+          // 次の問題へ
+          showCountdownAndProceed();
+        }
+      } else {
+        // 誤入力の場合：ミスカウント、背景フラッシュ、入力を取り消す
+        mistakeCount++;
+        flashBackground();
+        userInput = prevUserInput;
+        updateDisplay();
+        correctAnswerDisplay.textContent = currentAnswer;
+      }
+    });
+
+    /********** 正解後カウントダウン **********/
+    function showCountdownAndProceed() {
+      if (questionStartTime !== null) {
+        accumulatedActiveTime += Date.now() - questionStartTime;
+        questionStartTime = null;
+      }
+      correctAnswerDisplay.innerHTML = `<ruby><rb>${gameQuestions[currentIndex].correct}</rb><rt>${gameQuestions[currentIndex].answer}</rt></ruby>`;
+      feedbackDisplay.innerHTML = `<div id="countdown-circle">
+        <div id="countdown-hand"></div>
+      </div>`;
+      setTimeout(() => {
+        feedbackDisplay.textContent = "";
+        correctAnswerDisplay.textContent = "";
+        currentIndex++;
+        showNextKeyword();
+      }, 1000);
+    }
+
+    /********** ゲーム終了 **********/
+    function endGame() {
+      gameScreen.style.display = "none";
+      resultScreen.style.display = "block";
+      if (liveStatsIntervalId) clearInterval(liveStatsIntervalId);
+      if (questionInProgress && questionStartTime !== null) {
+        accumulatedActiveTime += Date.now() - questionStartTime;
+        questionStartTime = null;
+      }
+      const activeTime = accumulatedActiveTime;
+      const minutes = activeTime / 1000 / 60;
+      const kpm = minutes > 0 ? totalKeystrokes / minutes : 0;
+      const accuracy = totalKeystrokes ? 1 - (mistakeCount / totalKeystrokes) : 1;
+      const score = kpm * Math.pow(accuracy, 3);
+      const roundedScore = Math.round(score);
+      const levelInfo = getLevelInfo(roundedScore);
+      const pointsToNext = getPointsToNextLevel(roundedScore);
+
+      resultHeader.innerHTML = `
+        <div>
+          <span class="level-label">レベル</span><br>
+          <span class="level-value" style="color: ${levelInfo.color};">${levelInfo.level}</span>
+        </div>
+        <div>
+          <span class="score-label">スコア</span><br>
+          <span class="score-value">${roundedScore}</span>
+          <div style="font-size:0.5em; color:#555;">次のレベルまであと ${pointsToNext}</div>
+        </div>
+      `;
+      resultMessage.innerHTML = `
+        <table id="result-table">
+          <tr>
+            <td><strong>所要時間</strong></td>
+            <td>${(activeTime / 1000).toFixed(1)}秒</td>
+          </tr>
+          <tr>
+            <td><strong>KPM</strong></td>
+            <td>${kpm.toFixed(2)}</td>
+          </tr>
+          <tr>
+            <td><strong>正答率</strong></td>
+            <td>${(accuracy * 100).toFixed(2)}%</td>
+          </tr>
+          <tr>
+            <td><strong>ミスタイプ数</strong></td>
+            <td>${mistakeCount}</td>
+          </tr>
+        </table>
+      `;
+    }
+
+    /********** 問題データ編集画面用 **********/
+    function showDataEditor() {
+      let tsvText = "問題No\t問題集名\tTier\tローマ字答え\t答え\t問題文\t出題回数\t正解回数\t最新正解日\n";
+      keywords.forEach((item, index) => {
+        tsvText += `${index + 1}\t${item.setName}\t${item.tier}\t${item.answer}\t${item.correct}\t${item.description}\t${item.timesPresented}\t${item.timesCorrect}\t${item.lastCorrectDate}\n`;
+      });
+      dataTextarea.value = tsvText.trim();
+      startScreen.style.display = "none";
+      dataEditor.style.display = "block";
+    }
+    function updateDataFromEditor() {
+      const text = dataTextarea.value.trim();
+      if (!text) return;
+      const lines = text.split("\n");
+      const newData = [];
+      let startIdx = 0;
+      if (lines[0].includes("問題No")) {
+        startIdx = 1;
+      }
+      for (let i = startIdx; i < lines.length; i++) {
+        const parts = lines[i].split("\t");
+        if (parts.length >= 9) {
+          newData.push({
+            setName: parts[1].trim(),
+            tier: parts[2].trim(),
+            answer: parts[3].trim(),
+            correct: parts[4].trim(),
+            description: parts[5].trim(),
+            timesPresented: parseInt(parts[6].trim()) || 0,
+            timesCorrect: parseInt(parts[7].trim()) || 0,
+            lastCorrectDate: parts[8].trim()
+          });
+        }
+      }
+      if (newData.length > 0) {
+        keywords = newData;
+        alert("問題データを更新しました。");
+      } else {
+        alert("有効なデータが見つかりませんでした。");
+      }
+      dataEditor.style.display = "none";
+      startScreen.style.display = "block";
+      populateSetSelector();
+    }
+    function cancelDataEditor() {
+      dataEditor.style.display = "none";
+      startScreen.style.display = "block";
+    }
+
+    /********** 問題集選択チェックボックス生成 **********/
+    function populateSetSelector() {
+      const sets = Array.from(new Set(keywords.map(item => item.setName)));
+      let html = "";
+      sets.forEach(setName => {
+        html += `<label><input type="checkbox" name="setOption" value="${setName}" > ${setName}</label> `;
+      });
+      setSelector.innerHTML = html;
+    }
+
+    /********** 補助：フラッシュ処理 **********/
+    function flashBackground() {
+      inputField.classList.add("flash");
+      setTimeout(() => {
+        inputField.classList.remove("flash");
+      }, 300);
+    }
+
+    /********** イベントリスナーの登録 **********/
+    startButton.addEventListener("click", startGameWithCountdown);
+    restartButton.addEventListener("click", startGameWithCountdown);
+    editDataButton.addEventListener("click", showDataEditor);
+    updateDataButton.addEventListener("click", updateDataFromEditor);
+    cancelDataButton.addEventListener("click", cancelDataEditor);
+    homeButton.addEventListener("click", function () {
+      resultScreen.style.display = "none";
+      startScreen.style.display = "block";
+    });
+
+    document.addEventListener("DOMContentLoaded", populateSetSelector);
+  </script>
+</body>
+
+</html>
