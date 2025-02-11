@@ -3187,7 +3187,7 @@
     function showCurrentAnswer() {
       if (englishMode) {
           currentCorrectAnswerDisplay.innerHTML =
-        `<ruby><rb>${gameQuestions[currentIndex].answerEng}</rb><rt>${gameQuestions[currentIndex].answerEng}</rt></ruby>`;
+        `<ruby><rb>${gameQuestions[currentIndex].answerEng}</rb><rt>${gameQuestions[currentIndex].answer}</rt></ruby>`;
       } else {
           currentCorrectAnswerDisplay.innerHTML =
         `<ruby><rb>${gameQuestions[currentIndex].answer}</rb><rt>${gameQuestions[currentIndex].answerRoman}</rt></ruby>`;
@@ -3197,7 +3197,7 @@
     function showNextAnswer() {
       if (englishMode) {
           nextCorrectAnswerDisplay.innerHTML =
-        `<ruby><rb>${gameQuestions[currentIndex+1].answerEng}</rb><rt>${gameQuestions[currentIndex+1].answerEng}</rt></ruby>`;
+        `<ruby><rb>${gameQuestions[currentIndex+1].answerEng}</rb><rt>${gameQuestions[currentIndex+1].answer}</rt></ruby>`;
       } else {
           nextCorrectAnswerDisplay.innerHTML =
         `<ruby><rb>${gameQuestions[currentIndex+1].answer}</rb><rt>${gameQuestions[currentIndex+1].answerRoman}</rt></ruby>`;
