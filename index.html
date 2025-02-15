@@ -166,13 +166,31 @@
       background: var(--alt-bg-color);
     }
 
+    /* 問題文タイプのドロップダウンのスタイル */
+    select#description-type-select {
+      font-size: 1.0em;
+      padding: 2px 4px;
+      border: 2px solid #aaa;
+      border-radius: var(--border-radius);
+      background: #fff;
+      color: #333;
+      background-position: right 10px center;
+      background-size: 20px;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    select#description-type-select:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 5px rgba(85, 99, 222, 0.5);
+      outline: none;
+    }
     /* input[type="number"] の基本スタイル */
     input[type="number"] {
       width: 80px;
       font-size: 1.2em;
       padding: 2px 4px;
       border: 2px solid #aaa;
-      border-radius: 8px;
+      border-radius: var(--border-radius);
       outline: none;
       text-align: center;
       transition: border-color 0.3s, box-shadow 0.3s;
@@ -494,12 +512,14 @@
         Excelコピペで正解回数もセーブ＆ロード
       </p>
       <div id="description-type-container">
-        <h2>問題文タイプ</h2>
-        <label><input type="radio" name="descriptionType" value="description1" checked> 1 標準</label>
-        <label><input type="radio" name="descriptionType" value="description2"> 2 授業内解説</label>
-        <label><input type="radio" name="descriptionType" value="description3"> 3 解説(4o)</label>
-        <label><input type="radio" name="descriptionType" value="description4"> 4 Raison d'être(4o)</label>
-        <label><input type="radio" name="descriptionType" value="description5"> 5 標準inEng</label>
+        問題文タイプ 
+        <select id="description-type-select">
+          <option value="description1" selected>1 標準</option>
+          <option value="description2">2 授業内解説</option>
+          <option value="description3">3 解説(4o)</option>
+          <option value="description4">4 Raison d'être(4o)</option>
+          <option value="description5">5 標準inEng</option>
+        </select>
       </div>
       <div id="option-container">
         <label class="switch">
@@ -1814,13 +1834,11 @@
         }
       });
     });
+    document.getElementById("description-type-select").addEventListener("change", function() {
+      selectedDescriptionType = this.value;
+    });
     document.addEventListener("DOMContentLoaded", () => {
       populateSetList();
-      document.querySelectorAll('input[name="descriptionType"]').forEach(radio => {
-        radio.addEventListener("change", function () {
-          selectedDescriptionType = this.value;
-        });
-      });
     });
   </script>
 </body>
