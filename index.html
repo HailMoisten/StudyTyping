@@ -1305,8 +1305,10 @@
       feedbackDisplay.textContent = "";
       if (trainingMode) {
         showCurrentAnswer();
+        document.getElementById("keyboard-container").style.display = "block";
       } else {
         currentCorrectAnswerDisplay.textContent = "";
+        document.getElementById("keyboard-container").style.display = "none";
       }
       currentDescriptionDisplay.textContent = gameQuestions[currentIndex][selectedDescriptionType];
       questionMistakeCount = 0;
