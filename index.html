@@ -135,7 +135,7 @@
     }
 
     /* スタート画面 */
-    #main-panel {
+    #start-screen {
       width: 90%;
       max-width: 900px;
       height: 90vh;
@@ -184,7 +184,7 @@
       box-shadow: 0 0 5px rgba(85, 99, 222, 0.5);
       outline: none;
     }
-    /* input[type="number"] の基本スタイル */
+
     input[type="number"] {
       width: 80px;
       font-size: 1.2em;
@@ -196,18 +196,10 @@
       transition: border-color 0.3s, box-shadow 0.3s;
       background: #fff;
     }
-
     /* フォーカス時の強調 */
     input[type="number"]:focus {
       border-color: var(--primary-color);
       box-shadow: 0 0 5px rgba(85, 99, 222, 0.5);
-    }
-
-    /* WebKit系ブラウザ用：スピンボタン非表示 */
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
     }
 
     #set-list-container {
@@ -501,11 +493,11 @@
 
 <body>
   <!-- スタート画面 -->
-  <div id="main-panel" class="panel flex-container">
+  <div id="start-screen" class="panel flex-container">
     <!-- 左パネル：オプション -->
     <div id="left-panel" class="panel">
       <h1>StudyTyping</h1>
-      <aside>ver.2025.2.15 <a href="https://github.com/HailMoisten/StudyTyping" target="_blank">GitHub</a></aside>
+      <aside>ver.2025.2.16 <a href="https://github.com/HailMoisten/StudyTyping" target="_blank">GitHub</a></aside>
       <p>
         答えをローマ字読みで1文字ずつタイピング<br>
         問題データをExcelでカスタマイズ<br>
@@ -535,15 +527,18 @@
         </label>
         <span>英語で回答</span>
       </div>
-      <button id="start-button">ゲームスタート(s)</button>
-      <button id="edit-data-button" style="background:#888;">問題データ編集(e)</button>
+      <button id="start-button">ゲームスタート (s)</button>
+      <button id="edit-data-button" style="background:#888;">問題データ編集 (e)</button>
     </div>
     <!-- 右パネル：問題集リスト -->
     <div id="right-panel" class="panel">
       <h2>問題集リスト</h2>
+      選択した問題集から出題
       <!-- 問題数・ランダム出題オプション -->
-      <label for="num-questions">問題数 <input type="number" id="num-questions" value="10" min="1"
-          style="width:60px;"></label>
+      <label for="num-questions">問題数 
+        <input type="number" id="num-questions" value="10" min="1"
+          style="width:60px;">
+      </label>
       <div id="game-options" style="margin-bottom:10px;">
         <label class="switch">
           <input type="checkbox" id="random-mode-toggle">
@@ -619,7 +614,7 @@
       </div>
     </div>
     <div id="live-stats"></div>
-    <button id="pause-button" style="position:absolute; left:10px; bottom:10px; font-size:0.8em;">中断(Esc)</button>
+    <button id="pause-button" style="position:absolute; left:10px; bottom:10px; font-size:0.8em;">中断 (Esc)</button>
   </div>
 
   <!-- リザルト画面 -->
@@ -628,7 +623,7 @@
     <div id="result-header"></div>
     <div id="result-message"></div>
     <br>
-    <button id="show-this-round-set-button">今回の問題一覧</button>
+    <button id="show-this-round-set-button">今回の問題一覧 (m)</button>
     <br>
     <br>
     <button id="restart-same-round">同じ問題でリスタート (r)</button>
@@ -651,7 +646,7 @@
 
   <!-- モーダル：問題集内のanswer一覧表示用 -->
   <div id="set-modal">
-    <button id="close-set-modal" style="float:right;">閉じる</button>
+    <button id="close-set-modal" style="float:right;">閉じる (Esc)</button>
     <div id="set-modal-content"></div>
   </div>
 
@@ -974,14 +969,14 @@
       { score: 226, level: "A" },
       { score: 243, level: "A+" },
       { score: 260, level: "S" },
-      { score: 277, level: "Good!" },
-      { score: 300, level: "Fast" },
-      { score: 325, level: "Thunder" },
-      { score: 350, level: "Ninja" },
-      { score: 375, level: "Comet" },
-      { score: 400, level: "Professor" },
-      { score: 450, level: "LaserBeam" },
-      { score: 500, level: "EddieVH" }
+      { score: 277, level: "G" },
+      { score: 300, level: "F" },
+      { score: 325, level: "T" },
+      { score: 350, level: "N" },
+      { score: 375, level: "C" },
+      { score: 400, level: "P" },
+      { score: 450, level: "L" },
+      { score: 500, level: "E" }
     ];
     const levelColors = {
       "E-": "#5563DE",
@@ -1042,16 +1037,21 @@
     let currentSegmentInput = "";
     let specialShaTsuFlag = false;
     let selectedDescriptionType = "description1";
-    // リスタート用に前回の問題・選択情報を保存
-    let savedGameQuestions = [];
     let lastSelectedSets = [];
     let lastNumQuestions = 10;
     let lastRandomMode = false;
+    const avgColors = {
+      0: "#dadada",
+      1: "#c6e48b",
+      2: "#7bc96f",
+      3: "#239a3b",
+      4: "#196127"
+    };
 
     /********** DOM要素取得 **********/
     const waitingScreen = document.getElementById("waiting-screen");
     const waitingCountdown = document.getElementById("waiting-countdown");
-    const startScreen = document.getElementById("main-panel");
+    const startScreen = document.getElementById("start-screen");
     const gameScreen = document.getElementById("game-screen");
     const resultScreen = document.getElementById("result-screen");
     const dataEditor = document.getElementById("data-editor");
@@ -1154,7 +1154,7 @@
 
     /********** 待機画面によるゲーム開始 **********/
     function startGameWithCountdown() {
-      document.getElementById("main-panel").style.display = "none";
+      document.getElementById("start-screen").style.display = "none";
       document.getElementById("result-screen").style.display = "none";
       waitingScreen.style.display = "block";
       let countdown = 2;
@@ -1217,8 +1217,6 @@
           gameQuestions = weightedRandomSelect(extended, lastNumQuestions);
         }
       }
-      // 保存：同じ問題でリスタート用
-      savedGameQuestions = JSON.parse(JSON.stringify(gameQuestions));
       currentIndex = 0;
       totalKeystrokes = 0;
       mistakeCount = 0;
@@ -1368,7 +1366,6 @@
       showCurrentAnswer();
       if (questionMistakeCount === 0) {
         gameQuestions[currentIndex].timesCorrect = String(Number(gameQuestions[currentIndex].timesCorrect) + 1);
-        savedGameQuestions[currentIndex].timesCorrect = String(Number(savedGameQuestions[currentIndex].timesCorrect) + 1);
       }
       feedbackDisplay.innerHTML = `<div id="countdown-circle"></div>`;
       animateCountdownCircle(1000, function () {
@@ -1512,6 +1509,30 @@
       if (e.key.length !== 1) return;
       processInput(e.key.toLowerCase());
     });
+    /********** キー割り当て **********/
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        document.getElementById("set-modal").style.display = "none";
+      }
+      if (startScreen.style.display !== "none") {
+        if (e.key.toLowerCase() === "s") {
+          startGameWithCountdown();
+        } else if (e.key.toLowerCase() === "e") {
+          showDataEditor();
+        }
+      }
+      if (resultScreen.style.display !== "none") {
+        if (e.key.toLowerCase() === "r") {
+          restartSameRound();
+        } else if (e.key.toLowerCase() === "n") {
+          restartSameSet();
+        } else if (e.key.toLowerCase() === "h") {
+          homeButton.click();
+        } else if (e.key.toLowerCase() === "m") {
+          showThisRoundSetButton.click();
+        }
+      }
+    });
 
     /********** 補助：背景フラッシュ **********/
     function flashBackground() {
@@ -1569,9 +1590,9 @@
       `;
     }
 
-    // 同じ問題でリスタート：保存していた問題を再利用
+    // 同じ問題でリスタート：gameQuestionsはそのまま
     function restartSameRound() {
-      if (savedGameQuestions.length === 0) return;
+      if (gameQuestions.length === 0) return;
       // 待機画面を表示してカウントダウン開始
       resultScreen.style.display = "none";
       waitingScreen.style.display = "block";
@@ -1584,8 +1605,6 @@
         } else {
           clearInterval(intervalId);
           waitingScreen.style.display = "none";
-          // 同じ問題でリスタート：保存していた問題を再利用
-          gameQuestions = JSON.parse(JSON.stringify(savedGameQuestions));
           currentIndex = 0;
           totalKeystrokes = 0;
           mistakeCount = 0;
@@ -1601,7 +1620,7 @@
     /********** 同じ問題集でリスタート **********/
     function restartSameSet() {
       // 後から選択状態（DOM）の変更がない場合、前回の選択を反映して再出題
-      document.getElementById("main-panel").style.display = "none";
+      document.getElementById("start-screen").style.display = "none";
       resultScreen.style.display = "none";
       waitingScreen.style.display = "block";
       let countdown = 2;
@@ -1618,26 +1637,6 @@
       }, 1000);
     }
 
-    /********** キー割り当て **********/
-    document.addEventListener("keydown", function (e) {
-      if (startScreen.style.display !== "none") {
-        if (e.key.toLowerCase() === "s") {
-          startGameWithCountdown();
-        } else if (e.key.toLowerCase() === "e") {
-          showDataEditor();
-        }
-      }
-      if (resultScreen.style.display !== "none") {
-        if (e.key.toLowerCase() === "r") {
-          restartSameRound();
-        } else if (e.key.toLowerCase() === "n") {
-          restartSameSet();
-        } else if (e.key.toLowerCase() === "h") {
-          homeButton.click();
-        }
-      }
-    });
-
     /********** 問題データ編集画面用 **********/
     function showDataEditor() {
       let tsvText = "Index\tカテゴリー\t問題集名\tTier\tローマ字答え\t英語答え\t答え\tdescription1\tdescription2\tdescription3\tdescription4\tdescription5\t出題回数\t正解回数\t最新出題日\n";
@@ -1645,7 +1644,7 @@
         tsvText += `${index + 1}\t${item.categoryName}\t${item.setName}\t${item.tier}\t${item.answerRoman}\t${item.answerEng}\t${item.answer}\t${item.description1}\t${item.description2}\t${item.description3}\t${item.description4}\t${item.description5}\t${item.timesPresented}\t${item.timesCorrect}\t${item.lastPresentDate}\n`;
       });
       dataTextarea.value = tsvText.trim();
-      document.getElementById("main-panel").style.display = "none";
+      document.getElementById("start-screen").style.display = "none";
       dataEditor.style.display = "block";
     }
     function updateDataFromEditor() {
@@ -1683,12 +1682,12 @@
         alert("有効なデータが見つかりませんでした。");
       }
       dataEditor.style.display = "none";
-      document.getElementById("main-panel").style.display = "flex";
+      document.getElementById("start-screen").style.display = "flex";
       populateSetList();
     }
     function cancelDataEditor() {
       dataEditor.style.display = "none";
-      document.getElementById("main-panel").style.display = "flex";
+      document.getElementById("start-screen").style.display = "flex";
     }
 
     /********** 問題集選択チェックボックス生成 **********/
@@ -1715,13 +1714,6 @@
           let sum = qs.reduce((acc, q) => acc + Number(q.timesCorrect), 0);
           let avg = sum / count;
           let roundedAvg = Math.min(4, Math.max(0, Math.round(avg)));
-          const avgColors = {
-            0: "#dadada",
-            1: "#c6e48b",
-            2: "#7bc96f",
-            3: "#239a3b",
-            4: "#196127"
-          };
           let squareColor = avgColors[roundedAvg];
           let latestTimestamp = 0;
           qs.forEach(q => {
@@ -1761,52 +1753,91 @@
       });
     }
 
-    /********** モーダル表示（setのanswer一覧） **********/
     function showSetAnswerList(category, setName) {
       let filtered = questions.filter(q => q.categoryName === category && q.setName === setName);
-      let html = `<table border="1" style="width:100%; border-collapse:collapse;">
-        <tr><th>問題No.</th><th>正解</th><th>正解回数</th><th>1 標準</th></tr>`;
+      let html = `<table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                      <tr>
+                        <th>問題No.</th>
+                        <th>正解</th>
+                        <th>正解回数</th>
+                        <th>問題文</th>
+                        <th>最新出題日</th>
+                      </tr>
+                    </thead>
+                    <tbody>`;
       filtered.forEach(q => {
+        // 数値に変換し、0～4の範囲に丸める
+        let timesCorrect = Number(q.timesCorrect);
+        let rounded = Math.min(4, Math.max(0, Math.round(timesCorrect)));
+        let bgColor = avgColors[rounded];
+        // 3以上は濃い色と判断し、白字にする（簡易的な条件）
+        let textColor = (rounded >= 3) ? "#fff" : "#000";
         html += `<tr>
-          <td>${q.index}</td>
-          <td>${q.answer}</td>
-          <td>${q.timesCorrect}</td>
-          <td>${q.description1}</td>
-        </tr>`;
+                  <td style="text-align:center; padding: 4px;">${q.index}</td>
+                  <td style="text-align:center; padding: 4px;">${q.answer}</td>
+                  <td style="background-color:${bgColor}; color:${textColor}; text-align:center; padding: 4px;">
+                    ${q.timesCorrect}
+                  </td>
+                  <td style="padding: 4px;">${q.description1}</td>
+                  <td style="padding: 4px;">${q.lastPresentDate}</td>
+                </tr>`;
       });
-      html += `</table>`;
+      html += `</tbody></table>`;
       document.getElementById("set-modal-content").innerHTML = html;
       document.getElementById("set-modal").style.display = "block";
+      document.getElementById("close-set-modal").addEventListener("click", function () {
+        document.getElementById("set-modal").style.display = "none";
+      });
     }
-    document.getElementById("close-set-modal").addEventListener("click", function () {
-      document.getElementById("set-modal").style.display = "none";
-    });
 
     /********** 今回の問題一覧を表示する関数 **********/
     function showRoundQuestions() {
-      if (!savedGameQuestions || savedGameQuestions.length === 0) {
+      if (!gameQuestions || gameQuestions.length === 0) {
         alert("今回の問題はありません。");
         return;
       }
-      // テーブルヘッダー（問題No、正解、正解回数、問題文（description1）を表示）
-      let html = `<table border="1" style="width:100%; border-collapse:collapse;">
-                    <tr>
-                      <th>問題No.</th>
-                      <th>正解</th>
-                      <th>正解回数</th>
-                      <th>問題文</th>
-                    </tr>`;
-      savedGameQuestions.forEach(q => {
+      const avgColors = {
+        0: "#dadada",
+        1: "#c6e48b",
+        2: "#7bc96f",
+        3: "#239a3b",
+        4: "#196127"
+      };
+      let html = `<table style="width:100%; border-collapse:collapse;">
+                    <thead>
+                      <tr>
+                        <th>問題No.</th>
+                        <th>正解</th>
+                        <th>正解回数</th>
+                        <th>問題文</th>
+                        <th>最新出題日</th>
+                      </tr>
+                    </thead>
+                    <tbody>`;
+      gameQuestions.forEach(q => {
+        // 数値に変換し、0～4の範囲に丸める
+        let timesCorrect = Number(q.timesCorrect);
+        let rounded = Math.min(4, Math.max(0, Math.round(timesCorrect)));
+        let bgColor = avgColors[rounded];
+        // 3以上は濃い色と判断し、白字にする（簡易的な条件）
+        let textColor = (rounded >= 3) ? "#fff" : "#000";
         html += `<tr>
-                  <td>${q.index}</td>
-                  <td>${q.answer}</td>
-                  <td>${q.timesCorrect}</td>
-                  <td>${q.description1}</td>
+                  <td style="text-align:center; padding: 4px;">${q.index}</td>
+                  <td style="text-align:center; padding: 4px;">${q.answer}</td>
+                  <td style="background-color:${bgColor}; color:${textColor}; text-align:center; padding: 4px;">
+                    ${q.timesCorrect}
+                  </td>
+                  <td style="padding: 4px;">${q.description1}</td>
+                  <td style="padding: 4px;">${q.lastPresentDate}</td>
                 </tr>`;
       });
-      html += `</table>`;
+      html += `</tbody></table>`;
       document.getElementById("set-modal-content").innerHTML = html;
       document.getElementById("set-modal").style.display = "block";
+      document.getElementById("close-set-modal").addEventListener("click", function () {
+        document.getElementById("set-modal").style.display = "none";
+      });
     }
 
     /********** イベントリスナーの登録 **********/
@@ -1819,7 +1850,7 @@
     cancelDataButton.addEventListener("click", cancelDataEditor);
     homeButton.addEventListener("click", function () {
       resultScreen.style.display = "none";
-      document.getElementById("main-panel").style.display = "flex";
+      document.getElementById("start-screen").style.display = "flex";
       // 選択状態を維持するため、現在のチェック状態を保存して再設定
       let checkedStates = {};
       document.querySelectorAll('.set-checkbox').forEach(cb => {
