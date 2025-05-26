@@ -299,10 +299,6 @@
       min-height: 1.8em;
     }
 
-    #feedback {
-      min-height: 60px;
-    }
-
     #live-stats,
     #current-question-info,
     #next-question-info {
@@ -360,10 +356,11 @@
     /* カウントダウン円（正解時のアニメーション用／タイムショック時の残り時間表示としても利用） */
     #countdown-circle {
       width: 50px;
-      height: 50px;
+      height: 60px;
       background-image: conic-gradient(white 0deg, black 0deg);
       clip-path: circle();
       margin: auto;
+      margin-bottom: 10px;
       display: grid;
       place-items: center;
       position: relative;
@@ -390,7 +387,7 @@
       clip-path: none;
       display: inline-block;
       width: auto;
-      height: 50px;
+      height: 60px;
       text-align: center;
     }
 
@@ -541,7 +538,7 @@
     <!-- 左パネル：オプション -->
     <div id="left-panel" class="panel">
       <h1>StudyTyping</h1>
-      <aside>ver.2025.3.10 <a href="https://github.com/HailMoisten/StudyTyping" target="_blank">GitHub</a></aside>
+      <aside>ver.2025.5.26 <a href="https://github.com/HailMoisten/StudyTyping" target="_blank">GitHub</a></aside>
       <p>
         答えをローマ字読みで1文字ずつタイピング<br>
         問題データをExcelでカスタマイズ<br>
@@ -629,7 +626,6 @@
       <div id="countdown-circle">
         0.0s
       </div>
-      <div id="feedback"></div>
       <div id="keyboard-container">
         <div id="keyboard">
           <div class="keyboard-row">
@@ -2407,7 +2403,6 @@
     const homeButton = document.getElementById("home-button");
     const typedDisplay = document.getElementById("typed-display");
     const inputField = document.getElementById("input-field");
-    const feedbackDisplay = document.getElementById("feedback");
     const resultMessage = document.getElementById("result-message");
     const liveStatsDisplay = document.getElementById("live-stats");
     const showAnswerToggle = document.getElementById("show-answer-toggle");
@@ -2645,7 +2640,6 @@
         endGame();
         return;
       }
-      feedbackDisplay.textContent = "";
       if (trainingMode) {
         showCurrentAnswer();
         document.getElementById("keyboard-container").style.display = "block";
@@ -2698,7 +2692,8 @@
           }
         }, 100);
       } else {
-        document.getElementById("countdown-circle").style.display = "none";
+        // 初期の円を白黒ともに360度に
+        document.getElementById("countdown-circle").style.backgroundImage = `conic-gradient(white 360deg, black 360deg)`;
       }
     }
 
