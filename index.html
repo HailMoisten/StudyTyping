@@ -557,7 +557,7 @@
     <!-- 左パネル：オプション -->
     <div id="left-panel" class="panel">
       <h1>StudyTyping</h1>
-      <aside>ver.2025.5.27 <a href="https://github.com/HailMoisten/StudyTyping" target="_blank">GitHub</a></aside>
+      <aside id="version-display"></aside>
       <p>
         答えをローマ字読みで1文字ずつタイピング<br>
         問題データをExcelでカスタマイズ<br>
@@ -706,7 +706,7 @@
     <p>
       Excelやスプレッドシートにコピペ(Ctrl+A→Ctrl+C、Ctrl+V)で正解状況や追加問題をセーブ＆ロード<br>
       ヘッダー行(*は必須)：<br>
-      問題No カテゴリー* 問題集名* Tier ローマ字答え 英語答え 答え description1 description2 description3 description4 description5 出題回数 正解回数 最新出題日
+      問題No カテゴリー* 問題集名* Tier ローマ字答え 英語答え 答え description1 description2 descriptionEng 出題回数 正解回数 最新出題日
     </p>
     <textarea id="data-textarea"></textarea>
     <button id="clear-cache-button" style="background:#f66; margin-right:8px;">キャッシュクリア</button>
@@ -721,6 +721,9 @@
   </div>
 
   <script>
+    /********** Version **********/
+    const version = '2025.05.28';
+
     /********** 問題データ **********/
     let questions = [];
     const defaultQuestions = [
@@ -2419,15 +2422,17 @@
     ];
     // 起動時にキャッシュから読み込む
     function loadQuestions() {
-      const cached = localStorage.getItem('questions');
-      if (cached) {
-        questions = JSON.parse(cached);
+      const cachedData    = localStorage.getItem('cachedQuestions');
+      const cachedVersion = localStorage.getItem('cachedVersion');
+
+      if (cachedData && cachedVersion === version) {
+        // キャッシュが最新バージョンならそのまま読み込む
+        questions = JSON.parse(cachedData);
       } else {
-        // description3,4 を削除し、descriptionEng にリネーム
-        questions = defaultQuestions.map(q => {
-          const { description3, description4, description5, ...rest } = q;
-          return { ...rest, descriptionEng: description5 };
-        });
+        // バージョン不一致があればキャッシュをリセットして再生成
+        questions = defaultQuestions;
+        localStorage.setItem('cachedQuestions', JSON.stringify(questions));
+        localStorage.setItem('cachedVersion', version);
       }
     }
     loadQuestions();
@@ -3208,7 +3213,7 @@
     function showDataEditor() {
       let tsvText = "Index\tカテゴリー\t問題集名\tTier\tローマ字答え\t英語答え\t答え\tdescription1\tdescription2\tdescriptionEng\t出題回数\t正解回数\t最新出題日\n";
       questions.forEach((item, index) => {
-        tsvText += `${index + 1}\t${item.categoryName}\t${item.setName}\t${item.tier}\t${item.answerRoman}\t${item.answerEng}\t${item.answer}\t${item.description1}\t${item.description2}\t${item.description3}\t${item.description4}\t${item.description5}\t${item.timesPresented}\t${item.timesCorrect}\t${item.lastPresentDate}\n`;
+        tsvText += `${index + 1}\t${item.categoryName}\t${item.setName}\t${item.tier}\t${item.answerRoman}\t${item.answerEng}\t${item.answer}\t${item.description1}\t${item.description2}\t${item.descriptionEng}\t${item.timesPresented}\t${item.timesCorrect}\t${item.lastPresentDate}\n`;
       });
       dataTextarea.value = tsvText.trim();
       startScreen.style.display = "none";
@@ -3474,7 +3479,12 @@
       }
       alert("タイムショックモードの設定を更新しました。");
     });
+
+    // DOMContentLoaded
     document.addEventListener("DOMContentLoaded", () => {
+      // バージョン表示更新
+      document.getElementById('version-display').innerHTML =
+        `ver.${version} <a href="https://github.com/HailMoisten/StudyTyping" target="_blank">GitHub</a>`;
       populateSetList();
     });
     // キャッシュクリアボタン
