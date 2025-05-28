@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-Z9YVGSVVPK"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-Z9YVGSVVPK');
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="favicon.ico">
@@ -280,7 +287,7 @@
     #next-correct-answer {
       font-size: 1.2em;
       margin: 10px;
-      min-height: 30px;
+      min-height: 40px;
     }
 
     rt {
@@ -374,8 +381,8 @@
 
     /* カウントダウン円（正解時のアニメーション用／タイムショック時の残り時間表示としても利用） */
     #countdown-circle {
-      width: 50px;
-      height: 60px;
+      width: 40px;
+      height: 40px;
       background-image: conic-gradient(white 0deg, black 0deg);
       clip-path: circle();
       margin: auto;
@@ -389,8 +396,8 @@
     }
     #countdown-circle::before {
       content: "";
-      width: 40px;
-      height: 40px;
+      width: 30px;
+      height: 30px;
       background: white;
       clip-path: circle();
       position: absolute;
@@ -406,7 +413,7 @@
       clip-path: none;
       display: inline-block;
       width: auto;
-      height: 60px;
+      height: 40px;
       text-align: center;
     }
 
