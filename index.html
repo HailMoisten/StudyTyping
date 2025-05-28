@@ -733,7 +733,7 @@
       { "index": "12",  "answer": "情報の伝播性",  "categoryName": "IT-J5",  "setName": "11",  "tier": "I",  "answerRoman": "zyouhounodenpasei",  "answerEng": "Propagation of information",  "description1": "一度広まった情報が瞬時に拡散されやすい性質を情報の何性という？",  "description2": "広がりやすい cf. 炎上, デジタルタトゥー, 集合知",  "descriptionEng": "What is the property that once information is spread through SNS, etc., it spreads instantly?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
       { "index": "13",  "answer": "情報の個別性",  "categoryName": "IT-J5",  "setName": "11",  "tier": "I",  "answerRoman": "zyouhounokobetusei",  "answerEng": "Individuality of information",  "description1": "同じ情報でも受け取る人によって意味や価値が異なるという性質を情報の何性という？",  "description2": "情報は受け手によって変化する cf. 確証バイアス, 一次情報, サイバーカスケード",  "descriptionEng": "What is the property that the same information can have different meanings and values depending on who receives it?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
       { "index": "14",  "answer": "情報の目的性",  "categoryName": "IT-J5",  "setName": "11",  "tier": "I",  "answerRoman": "zyouhounomokutekisei",  "answerEng": "Purposefulness of information",  "description1": "情報は必ず何らかの目的をもって作られ、発信されるという性質を情報の何性という？",  "description2": "情報は発信者の目的によって加工される cf. メディアリテラシー, ファクトチェック, ポジショントーク, ステルスマーケティング",  "descriptionEng": "What is the property that information is always created and transmitted with some purpose?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
-      { "index": "16",  "answer": "産業財産権",  "categoryName": "IT-J5",  "setName": "12",  "tier": "I",  "answerRoman": "sanngyouzaisanken",  "answerEng": "Industrial Property",  "description1": "発明やデザイン、商標などを独占的に保護する知的財産権の総称は何？",  "description2": "特許庁に出願+登録されて権利発生(方式主義)。国ごとに若干ルールが異なる。",  "descriptionEng": "What is the generic term for intellectual property rights that exclusively protect inventions, designs, trademarks, etc.?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
+      { "index": "16",  "answer": "産業財産権",  "categoryName": "IT-J5",  "setName": "12",  "tier": "I",  "answerRoman": "sangyouzaisanken",  "answerEng": "Industrial Property",  "description1": "発明やデザイン、商標などを独占的に保護する知的財産権の総称は何？",  "description2": "特許庁に出願+登録されて権利発生(方式主義)。国ごとに若干ルールが異なる。",  "descriptionEng": "What is the generic term for intellectual property rights that exclusively protect inventions, designs, trademarks, etc.?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
       { "index": "17",  "answer": "方式主義",  "categoryName": "IT-J5",  "setName": "12",  "tier": "I",  "answerRoman": "housikisyugi",  "answerEng": "Formalism",  "description1": "産業財産権において、権利を取得するために特許庁への登録が必要な原則を何主義という？",  "description2": "申請が必要である方式のこと。産業財産権は方式主義。国ごとに申請が必要。",  "descriptionEng": "What is the term for the principle in industrial property rights that requires registration with the patent office in order to obtain rights?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
       { "index": "18",  "answer": "著作権",  "categoryName": "IT-J5",  "setName": "12",  "tier": "I",  "answerRoman": "tyosakuken",  "answerEng": "Copyright",  "description1": "創作された文章・音楽・映像などに発生し、無断利用を禁止する権利を何という？",  "description2": "著作物が作られた時点で自動的に権利発生(無方式主義)。財産権と人格権の2種類あり、財産権は譲渡・相続可能だが、人格権は譲渡できない。著作物を使う場合は著作権者の許諾を得る必要がある。",  "descriptionEng": "What is the term for the right to prohibit the unauthorized use of creative texts, music, images, etc.?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
       { "index": "20",  "answer": "特許権",  "categoryName": "IT-J5",  "setName": "12",  "tier": "I",  "answerRoman": "tokkyoken",  "answerEng": "Patent Right",  "description1": "新しい技術や発明を独占的に使用できる権利は何？",  "description2": "発明。保護期間は出願日から20年。産業財産権の1つ。",  "descriptionEng": "What is the term for the exclusive right to use a new technology or invention?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
@@ -2682,10 +2682,14 @@
       }
       if (!lastRandomMode) {
         filtered.sort((a, b) => {
-          let diff = parseInt(a.timesCorrect) - parseInt(b.timesCorrect);
-          if (diff !== 0) return diff;
-          let dateA = a.lastPresentDate ? new Date(a.lastPresentDate) : new Date(0);
-          let dateB = b.lastPresentDate ? new Date(b.lastPresentDate) : new Date(0);
+          // 正解回数を数値化（未定義や空文字は0扱い）
+          const cntA = Number(a.timesCorrect) || 0;
+          const cntB = Number(b.timesCorrect) || 0;
+          // 正解回数が少ない順
+          if (cntA !== cntB) return cntA - cntB;
+          // 同数なら最後に出題された日時が古い順
+          const dateA = a.lastPresentDate ? new Date(a.lastPresentDate) : new Date(0);
+          const dateB = b.lastPresentDate ? new Date(b.lastPresentDate) : new Date(0);
           return dateA - dateB;
         });
         if (filtered.length < lastNumQuestions) {
