@@ -702,8 +702,8 @@
     <br>
     <button id="show-this-round-set-button">今回の問題一覧 (m)</button>
     <br><br>
-    <button id="restart-same-round">同じ問題でリスタート (r)</button>
-    <button id="restart-same-set">同じ問題集でリスタート (n)</button>
+    <button id="restart-same-round">今回の問題を復習 (r)</button>
+    <button id="restart-same-set">同じ問題集でスタート (n)</button>
     <button id="home-button">ホームに戻る (h)</button>
   </div>
 
@@ -729,7 +729,7 @@
 
   <script>
     /********** Version **********/
-    const version = '2025.05.28';
+    const version = '2025.06.03';
 
     /********** 問題データ **********/
     let questions = [];
@@ -763,7 +763,7 @@
       { "index": "35",  "answer": "引用条件3: 引用部分を勝手に変えない",  "categoryName": "IT-J5",  "setName": "12",  "tier": "II",  "answerRoman": "innyoububunnwokattenikaenai",  "answerEng": "Do not change the quoted material without permission.",  "description1": "引用する際、元の著作物の内容を改変してはいけない。この条件を何という？",  "description2": "中略する場合はそれもわかるように",  "descriptionEng": "What is the condition that you must not alter the content of the original work when you quote it?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
       { "index": "36",  "answer": "引用条件4: 引用部分が全体の一部",  "categoryName": "IT-J5",  "setName": "12",  "tier": "II",  "answerRoman": "innyoububungazentainoitibu",  "answerEng": "The quoted material is part of the whole",  "description1": "引用する際、元の著作物が自作よりも大部分を占めてはいけない。この条件を何という？",  "description2": "自分の部分が主で、引用部分が従。半分未満が目安",  "descriptionEng": "What is the condition that the original work must not be larger than your own work when you quote it?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
       { "index": "37",  "answer": "引用条件5: 出典の明記",  "categoryName": "IT-J5",  "setName": "12",  "tier": "II",  "answerRoman": "syuttennnomeiki",  "answerEng": "The source must be clearly stated.",  "description1": "引用する際、出典を必ず記載しなければならない。この条件を何という？",  "description2": "書き方に厳密なルールはないが、記載はマスト",  "descriptionEng": "What information must be included when citing someone else's work?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
-      { "index": "38",  "answer": "私的使用のための複製",  "categoryName": "IT-J5",  "setName": "12",  "tier": "I",  "answerRoman": "sitekiriyounotamenohukusei",  "answerEng": "Reproduction for private use",  "description1": "自分だけが使う目的であれば複製してもよい。この例外規定を何という？",  "description2": "自分自身と家族まで。知人やネット上は×",  "descriptionEng": "What is the condition that says you may copy a work for your own personal use?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
+      { "index": "38",  "answer": "私的使用のための複製",  "categoryName": "IT-J5",  "setName": "12",  "tier": "I",  "answerRoman": "sitekisiyounotamenohukusei",  "answerEng": "Reproduction for private use",  "description1": "自分だけが使う目的であれば複製してもよい。この例外規定を何という？",  "description2": "自分自身と家族まで。知人やネット上は×",  "descriptionEng": "What is the condition that says you may copy a work for your own personal use?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
       { "index": "39",  "answer": "教育活動のための複製",  "categoryName": "IT-J5",  "setName": "12",  "tier": "I",  "answerRoman": "kyouikukatudou",  "answerEng": "Reproduction for educational activities",  "description1": "学校の授業のためなら複製してもよい。この例外規定を何という？",  "description2": "授業中とその過程のみ",  "descriptionEng": "What is the act of using a copyrighted work in a school class without permission under certain conditions?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
       { "index": "40",  "answer": "非営利の上演",  "categoryName": "IT-J5",  "setName": "12",  "tier": "I",  "answerRoman": "hieirinozyouen",  "answerEng": "Non-commercial performance",  "description1": "非営利かつ無報酬かつ入場無料であれば演奏や演劇を行ってもよい。この例外規定を何という？",  "description2": "非営利かつ無報酬かつ入場無料の場合のみ",  "descriptionEng": "What are the conditions under which a free performance or play is permitted without the copyright owner's permission?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
       { "index": "41",  "answer": "CCライセンス",  "categoryName": "IT-J5",  "setName": "12",  "tier": "I",  "answerRoman": "CCraisensu",  "answerEng": "CC License",  "description1": "４種類の条件を組み合わせて著作物の使用許可を明示できる、国際標準のライセンスを何という？",  "description2": "著作権の許可ルールを意思表示するツール。マークやハイパーリンクで使用条件を示せる。マークはBY, NC, ND, SAの4種類。表示パターンはこれを組み合わせた6種類。Creative Commons License",  "descriptionEng": "What is the name of a license that sets specific conditions for the author and allows free use of the work?",  "timesPresented": "",  "timesCorrect": "",  "lastCorrectDate": ""}, 
@@ -2442,7 +2442,6 @@
         localStorage.setItem('cachedVersion', version);
       }
     }
-    loadQuestions();
 
     /********** レベル判定用テーブル **********/
     const levelTable = [
@@ -3492,6 +3491,7 @@
       // バージョン表示更新
       document.getElementById('version-display').innerHTML =
         `ver.${version} <a href="https://github.com/HailMoisten/StudyTyping" target="_blank">GitHub</a>`;
+      loadQuestions();
       populateSetList();
     });
     // キャッシュクリアボタン
