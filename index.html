@@ -2429,18 +2429,21 @@
     ];
     // 起動時にキャッシュから読み込む
     function loadQuestions() {
-      const cachedData    = localStorage.getItem('cachedQuestions');
+      const cachedQuestions    = localStorage.getItem('cachedQuestions');
       const cachedVersion = localStorage.getItem('cachedVersion');
 
-      if (cachedData && cachedVersion === version) {
+      if (cachedQuestions && cachedVersion === version) {
         // キャッシュが最新バージョンならそのまま読み込む
-        questions = JSON.parse(cachedData);
+        questions = JSON.parse(cachedQuestions);
       } else {
         // バージョン不一致があればキャッシュをリセットして再生成
         questions = defaultQuestions;
-        localStorage.setItem('cachedQuestions', JSON.stringify(questions));
-        localStorage.setItem('cachedVersion', version);
+        saveQuestions();
       }
+    }
+    function saveQuestions() {
+      localStorage.setItem('cachedQuestions', JSON.stringify(questions));
+      localStorage.setItem('cachedVersion', version);
     }
 
     /********** レベル判定用テーブル **********/
@@ -3113,6 +3116,7 @@
 
     /********** ゲーム終了 **********/
     function endGame() {
+      saveQuestions();
       gameScreen.style.display = "none";
       resultScreen.style.display = "block";
       if (liveStatsIntervalId) clearInterval(liveStatsIntervalId);
@@ -3260,6 +3264,7 @@
       }
       dataEditor.style.display = "none";
       startScreen.style.display = "flex";
+      saveQuestions();
       populateSetList();
     }
     function cancelDataEditor() {
