@@ -143,6 +143,28 @@
       transform: translateX(22px);
     }
 
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+    }
+    .toast {
+      background: var(--accent-color);
+      color: white;
+      padding: 10px 16px;
+      margin-top: 8px;
+      border-radius: 4px;
+      font-size: 1.0em;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
     /* 修正後：フレックスレイアウトでアイコン＆テキストを上下中央揃え */
     #timeshock-options-button {
       align-items: center;      /* 垂直中央揃え */
@@ -648,6 +670,7 @@
 </head>
 
 <body>
+  <div id="toast-container"></div>
   <!-- スタート画面 -->
   <div id="start-screen" class="panel flex-container">
     <!-- 左パネル：オプション -->
@@ -3506,9 +3529,9 @@
       if (newData.length > 0) {
         questions = newData;
         localStorage.setItem('questions', JSON.stringify(questions));
-        alert("問題データを更新しました。");
+        showToast("問題データを更新しました。");
       } else {
-        alert("有効なデータが見つかりませんでした。");
+        showToast("有効なデータが見つかりませんでした。");
       }
       dataEditor.style.display = "none";
       startScreen.style.display = "flex";
@@ -3627,7 +3650,7 @@
     /********** 今回の問題一覧を表示する関数 **********/
     function showRoundQuestions() {
       if (!gameQuestions || gameQuestions.length === 0) {
-        alert("今回の問題はありません。");
+        showToast("今回の問題はありません。");
         return;
       }
       const avgColors = {
@@ -3675,7 +3698,7 @@
     startButton.addEventListener("click", () => {
       // 問題集が未選択なら警告して処理中断
       if (document.querySelectorAll('.set-checkbox:checked').length === 0) {
-        alert('問題集を1つ以上選択してください。');
+        showToast('問題集を1つ以上選択してください。');
         return;
       }
       startGameWithCountdown();
@@ -3724,7 +3747,7 @@
         penaltyTime = parseFloat(newPenalty);
       }
       updateTimeshockButton(); 
-      alert("タイムショックモードの設定を更新しました。");
+      showToast("タイムショックモードの設定を更新しました。");
     });
     function updateTimeshockButton() {
       document.getElementById('timeshock-values').textContent = `${baseTime} | ${penaltyTime}`;
@@ -3750,11 +3773,28 @@
         return;
       }
       localStorage.removeItem('questions');
-      alert('キャッシュをクリアしました');
+      showToast('キャッシュをクリアしました');
       // 必要ならここで再読み込み／再描画
       loadQuestions();
       populateSetList();
     });
+
+    /* トースト表示用ユーティリティ */
+    function showToast(message, duration = 3000) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      container.appendChild(toast);
+      // 表示アニメーション
+      requestAnimationFrame(() => toast.classList.add('show'));
+      // 自動消去
+      setTimeout(() => {
+        toast.classList.remove('show');
+        // フェードアウト後に DOM から削除
+        setTimeout(() => container.removeChild(toast), 300);
+      }, duration);
+    }
 
   </script>
 </body>
