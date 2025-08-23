@@ -12,6 +12,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="favicon.ico">
   <title>StudyTyping</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     /* カラーパレット・共通設定（CSS変数） */
     :root {
@@ -19,11 +20,20 @@
       --primary-dark: #434bbd;
       --primary-light: #f7f7ff;
       --accent-color: #DE5458;
+      --accent-dark: #c5484c;
       --bg-color: #ffffff;
       --alt-bg-color: #f5f5f5;
       --font-family: 'Noto Sans JP', sans-serif;
       --border-radius: 8px;
       --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+      /* Theme colors */
+      --theme-color: var(--primary-color);
+      --theme-dark: var(--primary-dark);
+    }
+    .study-mode {
+      --theme-color: var(--accent-color);
+      --theme-dark: var(--accent-dark);
     }
 
     /*===== リセット =====*/
@@ -63,7 +73,7 @@
     /* 見出し・本文 */
     h1,
     h2 {
-      color: var(--primary-color);
+      color: var(--theme-color);
       margin-bottom: 10px;
     }
 
@@ -81,20 +91,20 @@
 
     /* ボタン */
     button {
-      padding: 10px 20px;
+      padding: 10px 10px;
       border: none;
       border-radius: var(--border-radius);
-      background: var(--primary-color);
+      background: var(--theme-color);
       color: #fff;
       font-size: 1em;
       cursor: pointer;
       transition: background 0.3s;
-      margin: 5px;
+      margin: 4px;
       box-shadow: var(--box-shadow);
     }
 
     button:hover {
-      background: var(--primary-dark);
+      background: var(--theme-dark);
     }
 
     /* トグルスイッチ */
@@ -136,7 +146,7 @@
     }
 
     input:checked + .slider {
-      background-color: var(--primary-color);
+      background-color: var(--theme-color);
     }
 
     input:checked + .slider:before {
@@ -174,6 +184,8 @@
       height: 2em;              /* 高さを統一したい場合 */
       background: #888;
     }
+    .study-mode #timeshock-options-button { background: #888; }
+
 
     /* スタート画面 */
     #start-screen {
@@ -189,10 +201,11 @@
       flex-direction: row;
       background-color: var(--bg-color);
     }
-    /* ゲーム、リザルト、編集画面 */
+    /* ゲーム、リザルト、編集、成績画面 */
     #game-screen,
     #result-screen,
-    #data-editor {
+    #data-editor,
+    #score-history {
       width: 90%;
       max-width: 850px;
       height: auto;
@@ -217,7 +230,7 @@
       margin: auto;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 15px;
     }
 
     /* 右パネルは背景色を変更 */
@@ -226,9 +239,9 @@
     }
 
     /* 問題文タイプのドロップダウンのスタイル */
-    select#description-type-select {
+    select#description-type-select, select#sort-order-select {
       font-size: 1.0em;
-      padding: 2px 4px;
+      padding: 4px 4px;
       border: 2px solid #aaa;
       border-radius: var(--border-radius);
       background: #fff;
@@ -238,10 +251,13 @@
       transition: border-color 0.3s, box-shadow 0.3s;
     }
 
-    select#description-type-select:focus {
-      border-color: var(--primary-color);
+    select#description-type-select:focus, select#sort-order-select:focus {
+      border-color: var(--theme-color);
       box-shadow: 0 0 5px rgba(85, 99, 222, 0.5);
       outline: none;
+    }
+    .study-mode select#description-type-select:focus, .study-mode select#sort-order-select:focus {
+      box-shadow: 0 0 5px rgba(222, 84, 88, 0.5);
     }
 
     .category-header {
@@ -276,8 +292,11 @@
     }
     /* フォーカス時の強調 */
     input[type="number"]:focus {
-      border-color: var(--primary-color);
+      border-color: var(--theme-color);
       box-shadow: 0 0 5px rgba(85, 99, 222, 0.5);
+    }
+     .study-mode input[type="number"]:focus {
+      box-shadow: 0 0 5px rgba(222, 84, 88, 0.5);
     }
 
     #set-list-container {
@@ -310,7 +329,8 @@
     #current-progress,
     #next-progress {
       font-size: 0.7em;
-      color: var(--primary-dark);
+      color: #fff;
+      background: var(--theme-color);
       min-height: 10px;
     }
 
@@ -358,6 +378,7 @@
     }
     #input-field:focus {
       opacity: 1;
+      border: 1px solid var(--theme-color);
     }
     #input-field.empty::before {
       content: "ここをクリックして入力";
@@ -413,7 +434,7 @@
     }
 
     .active-key {
-      background: var(--primary-color);
+      background: var(--theme-color);
       color: #fff;
       font-weight: bold;
     }
@@ -472,7 +493,7 @@
 
     #countdown-circle.time-shock {
       font-size: 0.8em;
-      color: var(--primary-color);
+      color: var(--theme-color);
       background: none;
       clip-path: none;
       display: inline-block;
@@ -493,7 +514,7 @@
     #waiting-countdown {
       font-size: 4em;
       font-weight: bold;
-      color: var(--primary-color);
+      color: var(--theme-color);
       margin-top: 30%;
     }
 
@@ -601,7 +622,7 @@
     }
     /* テーブルを包むコンテナだけスクロール */
     #set-modal-table-container {
-      padding: 0 20px 20px;
+      padding: 0 1px 10px;
       max-height: calc(80vh - 50px); /* モーダル max-height 80% のうち、ヘッダー高さ(≈40px)+余白を除いた高さ */
       overflow-y: auto;
     }
@@ -615,11 +636,13 @@
     #set-modal-table-container table th {
       padding: 8px;
       border: 1px solid #ccc;
+      font-size: 0.8em;
     }
     /* データ行はそのまま */
     #set-modal-table-container table td {
       padding: 8px;
-      border: 1px solid #ccc;      
+      border: 1px solid #ccc;
+      font-size: 0.8em;
     }
     /* thead はテーブル内で上部に固定 */
     #set-modal-table-container thead th {
@@ -647,26 +670,222 @@
     tr:nth-child(even) {
       background: #efefef;
     }
+    
+    /* ===== 成績画面 ===== */
+    #score-history {
+      display: none; /* 初期は非表示 */
+      text-align: left;
+      --history-theme-color: var(--primary-color);
+      --history-theme-dark: var(--primary-dark);
+    }
+    #score-history.history-study-mode {
+      --history-theme-color: var(--accent-color);
+      --history-theme-dark: var(--accent-dark);
+    }
 
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .history-header > div:first-child {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #score-history h2#history-title {
+      color: var(--history-theme-color);
+    }
+
+    #signature-area {
+      text-align: right;
+    }
+
+    #signature-canvas {
+      border: 1px solid #ccc;
+      border-radius: var(--border-radius);
+      cursor: crosshair;
+    }
+
+    #clear-signature-button {
+      background: none;
+      border: none;
+      box-shadow: none;
+      cursor: pointer;
+      font-size: 1.5em;
+      padding: 0 5px;
+    }
+
+    .chart-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    #score-history #prev-month-button,
+    #score-history #next-month-button {
+        background: var(--history-theme-color);
+        padding: 6px 12px; /* 少し小さく */
+    }
+    #score-history #prev-month-button:hover,
+    #score-history #next-month-button:hover {
+        background: var(--history-theme-dark);
+    }
+    #score-history #history-mode-toggle:checked + .slider,
+    #score-history #yearly-view-toggle:checked + .slider {
+        background-color: var(--history-theme-color);
+    }
+    .chart-controls .switch {
+      margin-left: 5px;
+      margin-right: 0;
+    }
+
+
+    #history-chart-container, #history-calendar-container {
+      width: 100%;
+      height: 300px; /* Adjust as needed */
+      margin-bottom: 20px;
+    }
+    #history-chart {
+      width: 100%;
+      height: 100%;
+    }
+
+    #history-calendar-container {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      font-size: 0.7em;
+      height: auto;
+    }
+    .calendar-month-name {
+      font-size: 0.9em;
+      text-align: center;
+      margin-bottom: 4px;
+      font-weight: bold;
+    }
+    .calendar-month {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+    }
+    .calendar-day {
+      width: 10px;
+      height: 10px;
+      background-color: #efefef;
+      border-radius: 2px;
+    }
+    .calendar-day[data-date]:hover {
+      border: 1px solid black;
+      cursor: pointer;
+    }
+
+    .stats-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 15px;
+      text-align: center;
+    }
+    .stat-item {
+      background: var(--alt-bg-color);
+      padding: 10px;
+      border-radius: var(--border-radius);
+    }
+    .stat-label {
+      font-size: 0.6em;
+      color: #666;
+    }
+    .stat-value {
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+
+    #daily-score-modal {
+      display: none;
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2000;
+      padding: 20px;
+      background: white;
+      border-radius: var(--border-radius);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+      border: 1px solid #ddd;
+    }
+    #daily-score-modal table {
+      margin: 10px 0;
+      border-collapse: collapse;
+      border: none;
+    }
+    #daily-score-modal td {
+      border: none;
+      padding: 4px 8px;
+      text-align: left;
+    }
+     #daily-score-modal td:last-child {
+      text-align: right;
+      font-weight: bold;
+    }
+    #daily-score-action-button {
+        background: var(--primary-color);
+    }
+    #daily-score-action-button:hover {
+        background: var(--primary-dark);
+    }
+    #daily-score-modal.history-study-mode #daily-score-action-button {
+        background: var(--accent-color);
+    }
+    #daily-score-modal.history-study-mode #daily-score-action-button:hover {
+        background: var(--accent-dark);
+    }
+
+
+    /* Specific buttons that should not change color with theme */
+    #show-history-button, #edit-data-button, #cancel-data-button, #back-to-home-button,
+    .study-mode #show-history-button, .study-mode #edit-data-button, .study-mode #cancel-data-button, .study-mode #back-to-home-button {
+        background: #888;
+    }
+     .study-mode #show-history-button:hover, .study-mode #edit-data-button:hover, .study-mode #cancel-data-button:hover, .study-mode #back-to-home-button:hover {
+        background: #777;
+    }
+
+    #clear-cache-button, .study-mode #clear-cache-button {
+      background: #f66;
+    }
+     .study-mode #clear-cache-button:hover {
+      background: #e55;
+    }
+    
     @media (max-width: 920px) {
-      /* スタート画面：パネルを縦並びにするため、コンテナの方向をカラムに変更 */
-      #start-screen {
+      #start-screen { flex-direction: column; }
+      #left-panel, #right-panel { width: 100%; max-width: none; height: auto; }
+      #next-question-panel { display: none; }
+    }
+
+    @media (max-width: 800px) {
+      #history-calendar-container { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 600px) {
+      #history-calendar-container { grid-template-columns: repeat(3, 1fr); }
+      .history-header {
         flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
       }
-      /* left-panel と right-panel は横幅100%にして高さは自動調整 */
-      #left-panel,
-      #right-panel {
-        width: 100%;
-        max-width: none;
-        height: auto;
-      }
-      /* ゲーム画面：ネクストパネルを非表示に */
-      #next-question-panel {
-        display: none;
+      #signature-area {
+        align-self: flex-start;
+        text-align: left;
+        margin-top: 5px;
       }
     }
 
+
   </style>
+<link rel="stylesheet" href="/index.css">
 </head>
 
 <body>
@@ -675,19 +894,19 @@
   <div id="start-screen" class="panel flex-container">
     <!-- 左パネル：オプション -->
     <div id="left-panel" class="panel">
-      <h1>StudyTyping</h1>
+      <h1><span style="color: var(--accent-color);">Study</span><span style="color: var(--primary-color);">Typing</span></h1>
       <aside id="version-display"></aside>
       <p>
         答えをローマ字読みで1文字ずつタイピング<br>
         問題データをExcelでカスタマイズ<br>
-        Excelコピペで正解回数もセーブ＆ロード
+        Excelコピペで正解数もセーブ＆ロード
       </p>
       <div id="description-type-container">
-        問題文タイプ 
+        問題文タイプ
         <select id="description-type-select">
           <option value="description1" selected>1 標準</option>
           <option value="description2">2 解説</option>
-          <option value="descriptionEng">3 標準inEng</option>
+          <option value="descriptionEng">3 標準英語訳</option>
         </select>
       </div>
       <div id="option-container">
@@ -711,10 +930,13 @@
           <span class="slider"></span>
         </label>
         <span>時限モード</span>
-        <button id="timeshock-options-button">⚙ <span id="timeshock-values" style="font-size:0.8em; "></span></button>
+        <button id="timeshock-options-button" style="margin:0 10px;">⚙ <span id="timeshock-values" style="font-size:0.8em; "></span></button>
       </div>
-      <button id="start-button">ゲームスタート (s)</button>
-      <button id="edit-data-button" style="background:#888;">問題データ編集 (e)</button>
+      <button id="start-button" style="font-weight: bold; margin: 10 0px; padding: 15px;">ゲームスタート (s)</button>
+      <div style="display: flex; column-gap: 10px;">
+        <button id="show-history-button" style="flex: 1; font-size: 0.8em;">これまでの成績 (h)</button>
+        <button id="edit-data-button" style="flex: 1; font-size: 0.8em;">問題データ編集 (e)</button>
+      </div>
     </div>
     <!-- 右パネル：問題集リスト -->
     <div id="right-panel" class="panel">
@@ -725,11 +947,13 @@
         <input type="number" id="num-questions" value="10" min="1" style="width:60px;">
       </label>
       <div id="game-options" style="margin-bottom:10px;">
-        <label class="switch">
-          <input type="checkbox" id="random-mode-toggle">
-          <span class="slider"></span>
+        <label for="sort-order-select">出題順
+          <select id="sort-order-select">
+            <option value="correct-asc" selected>正解数昇順</option>
+            <option value="number-asc">問題No.昇順</option>
+            <option value="random">ランダム</option>
+          </select>
         </label>
-        <span>ランダム出題</span>
       </div>
       <div id="set-list-container"></div>
     </div>
@@ -745,13 +969,13 @@
     <div id="question-panels">
       <!-- 現在の問題パネル -->
       <div id="current-question-panel" class="panel" style="position: relative;">
-        <div id="current-progress" style="position: relative; top: -10px; background: var(--primary-color); color: #fff; padding: 5px 10px; border-radius: 12px; font-size: 0.8em;"></div>
+        <div id="current-progress" style="position: relative; top: -10px; padding: 5px 10px; border-radius: 12px; font-size: 0.8em;"></div>
         <div id="current-description"></div>
         <div id="current-correct-answer"></div>
       </div>
       <!-- 次の問題パネル -->
       <div id="next-question-panel" class="panel">
-        <div id="next-progress" style="position: relative; top: -10px; background: var(--primary-color); color: #fff; padding: 5px 10px; border-radius: 12px; font-size: 0.8em;"></div>
+        <div id="next-progress" style="position: relative; top: -10px; padding: 5px 10px; border-radius: 12px; font-size: 0.8em;"></div>
         <div id="next-description"></div>
         <div id="next-correct-answer"></div>
       </div>
@@ -829,16 +1053,60 @@
   <!-- 問題データ編集画面 -->
   <div id="data-editor" class="panel" style="display:none;">
     <h2>問題データ確認・編集</h2>
-    <p>
-      Excelやスプレッドシートにコピペ(Ctrl+A→Ctrl+C、Ctrl+V)で正解状況や追加問題をセーブ＆ロード<br>
-      ヘッダー行(*は必須)：<br>
-      問題No カテゴリー* 問題集名* Tier ローマ字答え* 英語答え 答え* 問題文1* 問題文2 問題文英語 出題回数 正解回数 最新出題日
+    <p style="font-size: 0.9em;">
+      Excelにコピペ(Ctrl+A→Ctrl+C、Ctrl+V)で正解数や追加問題をセーブ＆ロード<br>
+      必須列: カテゴリー, 問題集名, ローマ字答え, 答え, 問題文1
     </p>
     <textarea id="data-textarea"></textarea>
-    <button id="clear-cache-button" style="background:#f66; margin-right:8px;">キャッシュクリア</button>
+    <button id="clear-cache-button" style="margin-right:8px;">問題キャッシュクリア</button>
     <button id="update-data-button">更新</button>
-    <button id="cancel-data-button" style="background:#888;">戻る</button>
+    <button id="cancel-data-button">戻る</button>
   </div>
+  
+  <!-- 成績画面 -->
+  <div id="score-history" class="panel" style="display: none;">
+    <div class="history-header">
+      <div>
+        <label class="switch">
+          <input type="checkbox" id="history-mode-toggle">
+          <span class="slider"></span>
+        </label>
+        <h2 id="history-title" style="padding-top:10px;"></h2>
+      </div>
+      <div id="signature-area">
+        <div style="font-size:0.8em; color:#666;">署名欄 <button id="clear-signature-button">🗑️</button></div>
+        <canvas id="signature-canvas" width="200" height="50"></canvas>
+      </div>
+    </div>
+    <div class="chart-controls">
+      <button id="prev-month-button">&lt;</button>
+      <span id="month-display"></span>
+      <button id="next-month-button">&gt;</button>
+      <div style="margin-left: 20px; display:flex; align-items:center; gap: 5px;">
+        <label class="switch">
+          <input type="checkbox" id="yearly-view-toggle">
+          <span class="slider"></span>
+        </label>
+        <span>年間表示</span>
+      </div>
+    </div>
+    <div id="history-chart-container">
+      <canvas id="history-chart"></canvas>
+    </div>
+    <div id="history-calendar-container" style="display: none;"></div>
+    <div class="stats-summary" id="stats-summary">
+      <!-- 統計情報がここに挿入されます -->
+    </div>
+    <button id="back-to-home-button" style="margin-top: 20px;">戻る</button>
+  </div>
+  
+  <!-- 日付別成績モーダル -->
+  <div id="daily-score-modal">
+    <h3 id="daily-score-date"></h3>
+    <div id="daily-score-content"></div>
+    <button id="daily-score-action-button" style="font-size: 0.8em; padding: 5px 10px;">除外</button>
+  </div>
+
 
   <!-- モーダル：問題集内のanswer一覧表示用 -->
   <div id="set-modal">
@@ -851,7 +1119,7 @@
           <tr>
             <th>問題No.</th>
             <th>正解</th>
-            <th>正解回数</th>
+            <th>正解数</th>
             <th>問題文</th>
             <th>最新出題日</th>
           </tr>
@@ -2565,22 +2833,37 @@
     ];
     // 起動時にキャッシュから読み込む
     function loadQuestions() {
-      const cachedQuestions    = localStorage.getItem('cachedQuestions');
+      const cachedQuestions = localStorage.getItem('cachedQuestions');
       const cachedVersion = localStorage.getItem('cachedVersion');
+      const isNewVersionAvailable = cachedVersion !== version;
 
-      if (cachedQuestions && cachedVersion === version) {
-        // キャッシュが最新バージョンならそのまま読み込む
+      if (cachedQuestions) {
         questions = JSON.parse(cachedQuestions);
       } else {
-        // バージョン不一致があればキャッシュをリセットして再生成
+        // No cache exists. Use default questions and save.
         questions = defaultQuestions;
         saveQuestions();
+      }
+
+      // Update version display
+      const versionDisplay = document.getElementById('version-display');
+      if (isNewVersionAvailable && cachedQuestions) { // Show 'new!' only if there was old data
+        versionDisplay.innerHTML = 
+          `問題ver.${version} <span id="new-version-notice" style="text-decoration: underline; cursor: pointer; color: var(--accent-color); font-weight: bold;">new!</span> <a href="https://github.com/HailMoisten/StudyTyping" target="_blank">GitHub</a>`;
+        
+        document.getElementById('new-version-notice').addEventListener('click', () => {
+          showToast('新しいバージョンの問題データがあります。[問題データ編集]からキャッシュをクリアすると、正解回数はリセットされますが問題データは更新されます。', 5000);
+        });
+      } else {
+        versionDisplay.innerHTML =
+          `問題ver.${version} <a href="https://github.com/HailMoisten/StudyTyping" target="_blank">GitHub</a>`;
       }
     }
     function saveQuestions() {
       localStorage.setItem('cachedQuestions', JSON.stringify(questions));
       localStorage.setItem('cachedVersion', version);
     }
+
 
     /********** レベル判定用テーブル **********/
     const levelTable = [
@@ -2672,7 +2955,7 @@
     let selectedDescriptionType = "description1";
     let lastSelectedSets = [];
     let lastNumQuestions = 10;
-    let lastRandomMode = false;
+    let lastSortOrder = 'correct-asc';
     let accordionStates = {};
     const avgColors = {
       0: "#dadada",
@@ -2684,8 +2967,8 @@
 
     // ★ タイムショックモード用グローバル変数 ★
     let timeShockMode = false;
-    let baseTime = 5;       // 1問あたりの基本制限時間（秒）
-    let penaltyTime = 0.2;  // ミスタイプ1回あたりのペナルティ（秒）
+    let baseTime = 1;       // 1問あたりの基本制限時間（秒）
+    let penaltyTime = 0.5;  // ミスタイプ1回あたりのペナルティ（秒）
     let questionTimer = null;
     let remainingTime = 0;
 
@@ -2696,9 +2979,11 @@
     const gameScreen = document.getElementById("game-screen");
     const resultScreen = document.getElementById("result-screen");
     const dataEditor = document.getElementById("data-editor");
+    const scoreHistoryScreen = document.getElementById("score-history");
     const dataTextarea = document.getElementById("data-textarea");
     const startButton = document.getElementById("start-button");
     const editDataButton = document.getElementById("edit-data-button");
+    const showHistoryButton = document.getElementById("show-history-button");
     const updateDataButton = document.getElementById("update-data-button");
     const cancelDataButton = document.getElementById("cancel-data-button");
     const pauseButton = document.getElementById("pause-button");
@@ -2712,9 +2997,9 @@
     const liveStatsDisplay = document.getElementById("live-stats");
     const showAnswerToggle = document.getElementById("show-answer-toggle");
     const englishModeToggle = document.getElementById("english-mode-toggle");
-    // 問題数・ランダム出題トグル
+    // 問題数・出題順
     const numQuestionsInput = document.getElementById("num-questions");
-    const randomModeToggle = document.getElementById("random-mode-toggle");
+    const sortOrderSelect = document.getElementById("sort-order-select");
     // 現在の問題パネル
     const currentProgressDisplay = document.getElementById("current-progress");
     const currentDescriptionDisplay = document.getElementById("current-description");
@@ -2815,13 +3100,12 @@
 
     /********** ゲーム開始 **********/
     function startGameInternal() {
-      // 設定反映：チェック状態、問題数、ランダムモード
+      // 設定反映：チェック状態、問題数、出題順
       trainingMode = showAnswerToggle.checked;
       englishMode = englishModeToggle.checked;
-      // ★ タイムショックモードの状態取得 ★
       timeShockMode = document.getElementById("timeshock-mode-toggle").checked;
       lastNumQuestions = parseInt(numQuestionsInput.value) || 10;
-      lastRandomMode = randomModeToggle.checked;
+      lastSortOrder = sortOrderSelect.value;
       lastSelectedSets = [];
       document.getElementById("countdown-circle").textContent = "";
 
@@ -2835,28 +3119,30 @@
         endGame();
         return;
       }
-      if (!lastRandomMode) {
+
+      // ソート処理
+      if (lastSortOrder === 'correct-asc') {
         filtered.sort((a, b) => {
-          // 正解回数を数値化（未定義や空文字は0扱い）
           const cntA = Number(a.timesCorrect) || 0;
           const cntB = Number(b.timesCorrect) || 0;
-          // 正解回数が少ない順
           if (cntA !== cntB) return cntA - cntB;
-          // 同数なら最後に出題された日時が古い順
           const dateA = a.lastPresentDate ? new Date(a.lastPresentDate) : new Date(0);
           const dateB = b.lastPresentDate ? new Date(b.lastPresentDate) : new Date(0);
           return dateA - dateB;
         });
-        if (filtered.length < lastNumQuestions) {
-          gameQuestions = [];
-          while (gameQuestions.length < lastNumQuestions) {
-            gameQuestions = gameQuestions.concat(filtered);
-          }
-          gameQuestions = gameQuestions.slice(0, lastNumQuestions);
-        } else {
-          gameQuestions = filtered.slice(0, lastNumQuestions);
-        }
-      } else {
+      } else if (lastSortOrder === 'number-asc') {
+        filtered.sort((a, b) => {
+          const indexA = a.index ? parseInt(a.index, 10) : 0;
+          const indexB = b.index ? parseInt(b.index, 10) : 0;
+          if (indexA !== indexB) return indexA - indexB;
+          const dateA = a.lastPresentDate ? new Date(a.lastPresentDate) : new Date(0);
+          const dateB = b.lastPresentDate ? new Date(b.lastPresentDate) : new Date(0);
+          return dateA - dateB;
+        });
+      }
+
+      // 問題数選択とランダム処理
+      if (lastSortOrder === 'random') {
         gameQuestions = weightedRandomSelect(filtered, lastNumQuestions);
         if (gameQuestions.length < lastNumQuestions) {
           let times = Math.ceil(lastNumQuestions / filtered.length);
@@ -2866,7 +3152,18 @@
           }
           gameQuestions = weightedRandomSelect(extended, lastNumQuestions);
         }
+      } else { // ソート順の場合
+        if (filtered.length < lastNumQuestions) {
+          gameQuestions = [];
+          while (gameQuestions.length < lastNumQuestions) {
+            gameQuestions = gameQuestions.concat(filtered);
+          }
+          gameQuestions = gameQuestions.slice(0, lastNumQuestions);
+        } else {
+          gameQuestions = filtered.slice(0, lastNumQuestions);
+        }
       }
+
       currentIndex = 0;
       totalKeystrokes = 0;
       mistypeCount = 0;
@@ -3313,12 +3610,15 @@
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape") {
         document.getElementById("set-modal").style.display = "none";
+        hideDailyScoreModal();
       }
       if (startScreen.style.display !== "none") {
         if (e.key.toLowerCase() === "s") {
           startGameWithCountdown();
         } else if (e.key.toLowerCase() === "e") {
           showDataEditor();
+        } else if (e.key.toLowerCase() === "h") {
+          showHistoryButton.click();
         }
       }
       if (resultScreen.style.display !== "none") {
@@ -3395,18 +3695,28 @@
         accumulatedActiveTime += Date.now() - questionStartTime;
         questionStartTime = null;
       }
-      const activeTime = accumulatedActiveTime;
-      const minutes = activeTime / 1000 / 60;
-      const kpm = minutes > 0 ? totalKeystrokes / minutes : 0;
-      const accuracy = totalKeystrokes ? 1 - (mistypeCount / totalKeystrokes) : 1;
+      const activeTime = (accumulatedActiveTime / 1000).toFixed(1);
+      const minutes = accumulatedActiveTime / 60000;
+      const limitedMistypeCount = Math.min(mistypeCount, totalKeystrokes);
+      const kpm = minutes > 0 ? (totalKeystrokes / minutes) : 0;
+      const accuracy = totalKeystrokes ? (Math.max(0, totalKeystrokes - limitedMistypeCount) / totalKeystrokes) : 1;
       const score = kpm * Math.pow(accuracy, 3);
       const roundedScore = Math.round(score);
       const levelInfo = getLevelInfo(roundedScore);
       const pointsToNext = getPointsToNextLevel(roundedScore);
+
+      let sortOrderText = '';
+      if (lastSortOrder === 'correct-asc') {
+          sortOrderText = '正解数';
+      } else if (lastSortOrder === 'number-asc') {
+          sortOrderText = '問題No.';
+      } else { // 'random'
+          sortOrderText = 'ランダム';
+      }
       modeText = showAnswerToggle.checked ? "ON/" : "OFF/";
       modeText += englishMode ? "ON/" : "OFF/";
       modeText += timeShockMode ? "ON/" : "OFF/";
-      modeText += randomModeToggle.checked ? "ON" : "OFF";
+      modeText += sortOrderText;
 
       document.getElementById("result-header").innerHTML = `
         <div>
@@ -3422,12 +3732,12 @@
       resultMessage.innerHTML = `
         <table id="result-table">
           <tr>
-            <td><strong>所要時間</strong></td>
-            <td>${(activeTime / 1000).toFixed(1)}秒</td>
+            <td><strong>プレイ時間</strong></td>
+            <td>${activeTime}秒</td>
           </tr>
           <tr>
-            <td><strong>正解数/問題数</strong></td>
-            <td>${correctCount} / ${lastNumQuestions}</td>
+            <td><strong>正解数/回答数</strong></td>
+            <td>${correctCount} / ${correctCount+incorrectCount}</td>
           </tr>
           <tr>
             <td><strong>KPM(keys/m)</strong></td>
@@ -3435,15 +3745,64 @@
           </tr>
           <tr>
             <td><strong>正タイプ率</strong></td>
-            <td>${(accuracy * 100).toFixed(2)}% (${totalKeystrokes-mistypeCount}/${totalKeystrokes})</td>
+            <td>${(accuracy * 100).toFixed(2)}% ((${totalKeystrokes} - ${limitedMistypeCount})/${totalKeystrokes})</td>
           </tr>
           <tr>
             <td><strong>モード情報<br></strong></td>
-            <td style="font-size:0.8em">答え/英語/時限/ランダム<br>${modeText}</td>
+            <td style="font-size:0.8em">答え/英語/時限/出題順<br>${modeText}</td>
           </tr>
         </table>
       `;
+
+      // ★★★ 成績保存 ★★★
+      saveDailyResult({
+        accumulatedActiveTime, correctCount, incorrectCount, totalKeystrokes, limitedMistypeCount, kpm: parseFloat(kpm.toFixed(2)), roundedScore
+      });
     }
+
+    /********** 日ごとの成績保存 **********/
+    function saveDailyResult(result) {
+        const today = new Date().toISOString().split('T')[0]; // "YYYY-MM-DD"
+        // 答え表示OFF（スタディモード）は 'historyHiddenAnswer'
+        // 答え表示ON（タイピングモード）は 'historyShowAnswer'
+        const historyKey = !showAnswerToggle.checked ? 'historyHiddenAnswer' : 'historyShowAnswer';
+        let history = JSON.parse(localStorage.getItem(historyKey)) || {};
+
+        const todayData = history[today];
+        if (todayData) {
+            // 加算
+            todayData.activeTime += result.accumulatedActiveTime;
+            todayData.correctCount += result.correctCount;
+            todayData.totalQuestions += (result.correctCount + result.incorrectCount);
+            todayData.totalKeystrokes += result.totalKeystrokes;
+            todayData.limitedMistypeCount += result.limitedMistypeCount;
+
+            // KPMとスコアを再計算
+            const totalMinutes = todayData.activeTime / 60000;
+            const newKpm = totalMinutes > 0 ? (todayData.totalKeystrokes / totalMinutes) : 0;
+            const totalAccuracy = todayData.totalKeystrokes > 0 ? 
+                (Math.max(0, todayData.totalKeystrokes - todayData.limitedMistypeCount) / todayData.totalKeystrokes) : 1;
+            const newScore = newKpm * Math.pow(totalAccuracy, 3);
+            
+            todayData.kpm = parseFloat(newKpm.toFixed(2));
+            todayData.score = Math.round(newScore);
+        } else {
+            // 新規作成
+            history[today] = {
+                date: today,
+                activeTime: result.accumulatedActiveTime,
+                correctCount: result.correctCount,
+                totalQuestions: result.correctCount + result.incorrectCount,
+                totalKeystrokes: result.totalKeystrokes,
+                limitedMistypeCount: result.limitedMistypeCount,
+                kpm: result.kpm,
+                score: result.roundedScore,
+                excluded: false,
+            };
+        }
+        localStorage.setItem(historyKey, JSON.stringify(history));
+    }
+
 
     // 同じ問題でリスタート：gameQuestionsはそのまま
     function restartSameRound() {
@@ -3462,6 +3821,8 @@
           currentIndex = 0;
           totalKeystrokes = 0;
           mistypeCount = 0;
+          correctCount = 0;
+          incorrectCount = 0;
           accumulatedActiveTime = 0;
           questionStartTime = null;
           gameScreen.style.display = "block";
@@ -3493,8 +3854,8 @@
     /********** 問題データ編集画面用 **********/
     function showDataEditor() {
       let tsvText = "Index\tカテゴリー\t問題集名\tTier\tローマ字答え\t英語答え\t答え\t問題文1\t問題文2\t問題文英語\t出題回数\t正解回数\t最新出題日\n";
-      questions.forEach((item, index) => {
-        tsvText += `${index + 1}\t${item.categoryName}\t${item.setName}\t${item.tier}\t${item.answerRoman}\t${item.answerEng}\t${item.answer}\t${item.description1}\t${item.description2}\t${item.descriptionEng}\t${item.timesPresented}\t${item.timesCorrect}\t${item.lastPresentDate}\n`;
+      questions.forEach(item => {
+        tsvText += `${item.index}\t${item.categoryName}\t${item.setName}\t${item.tier}\t${item.answerRoman}\t${item.answerEng}\t${item.answer}\t${item.description1}\t${item.description2}\t${item.descriptionEng}\t${item.timesPresented}\t${item.timesCorrect}\t${item.lastPresentDate || ''}\n`;
       });
       dataTextarea.value = tsvText.trim();
       startScreen.style.display = "none";
@@ -3509,26 +3870,28 @@
       if (lines[0].includes("Index")) startIdx = 1;
       for (let i = startIdx; i < lines.length; i++) {
         const parts = lines[i].split("\t");
-        if (parts.length >= 13) {
+        // 必須項目(問題文1まで)があれば行として扱う
+        if (parts.length >= 8) {
+          const lastPresentDate = (parts[12] || '').trim();
           newData.push({
+            index: parts[0].trim(),
             categoryName: parts[1].trim(),
             setName: parts[2].trim(),
-            tier: parts[3].trim(),
+            tier: (parts[3] || '').trim(),
             answerRoman: parts[4].trim(),
-            answerEng: parts[5].trim(),
+            answerEng: (parts[5] || '').trim(),
             answer: parts[6].trim(),
             description1: parts[7].trim(),
-            description2: parts[8].trim(),
-            descriptionEng: parts[9].trim(),
-            timesPresented: parts[10].trim(),
-            timesCorrect: parts[11].trim(),
-            lastPresentDate: parts[12].trim()
+            description2: (parts[8] || '').trim(),
+            descriptionEng: (parts[9] || '').trim(),
+            timesPresented: (parts[10] || '').trim(),
+            timesCorrect: (parts[11] || '').trim(),
+            lastPresentDate: lastPresentDate === '' ? undefined : lastPresentDate
           });
         }
       }
       if (newData.length > 0) {
         questions = newData;
-        localStorage.setItem('questions', JSON.stringify(questions));
         showToast("問題データを更新しました。");
       } else {
         showToast("有効なデータが見つかりませんでした。");
@@ -3698,35 +4061,27 @@
     updateDataButton.addEventListener("click", updateDataFromEditor);
     cancelDataButton.addEventListener("click", cancelDataEditor);
     homeButton.addEventListener("click", function () {
-      // リザルト画面のスタート画面トグルの状態によって動作を変更
-      const startToggle = document.getElementById("start-screen-toggle");
-      if (startToggle && !startToggle.checked) {
-        // トグルオフの場合はホームクリックで即ゲーム再開（同じ問題集でリスタート）
-        restartSameSet();
-      } else {
-        // トグルオンの場合はスタート画面を表示（チェック状態を保持）
-        resultScreen.style.display = "none";
-        startScreen.style.display = "flex";
-        let checkedStates = {};
-        document.querySelectorAll('.set-checkbox').forEach(cb => {
-          let key = cb.getAttribute("data-category") + "_" + cb.value;
-          checkedStates[key] = cb.checked;
-        });
-        populateSetList();
-        document.querySelectorAll('.set-checkbox').forEach(cb => {
-          let key = cb.getAttribute("data-category") + "_" + cb.value;
-          if (checkedStates[key]) {
-            cb.checked = true;
-          }
-        });
-      }
+      resultScreen.style.display = "none";
+      startScreen.style.display = "flex";
+      let checkedStates = {};
+      document.querySelectorAll('.set-checkbox').forEach(cb => {
+        let key = cb.getAttribute("data-category") + "_" + cb.value;
+        checkedStates[key] = cb.checked;
+      });
+      populateSetList();
+      document.querySelectorAll('.set-checkbox').forEach(cb => {
+        let key = cb.getAttribute("data-category") + "_" + cb.value;
+        if (checkedStates[key]) {
+          cb.checked = true;
+        }
+      });
     });
     document.getElementById("description-type-select").addEventListener("change", function() {
       selectedDescriptionType = this.value;
     });
     document.getElementById("timeshock-options-button").addEventListener("click", function() {
-      let newBase = prompt("1問あたりの基本制限時間（秒）を入力してください。現在の値：" + baseTime, baseTime);
-      let newPenalty = prompt("ミスタイプ1回あたりのペナルティ（秒）を入力してください。現在の値：" + penaltyTime, penaltyTime);
+      let newBase = prompt("1問あたりの基本制限時間を入力してください。現在の値： " + baseTime + " 秒", baseTime);
+      let newPenalty = prompt("1文字あたりの追加制限時間兼ペナルティ（秒）を入力してください。現在の値： " + penaltyTime + " 秒", penaltyTime);
       if(newBase !== null && !isNaN(newBase)) {
         baseTime = parseFloat(newBase);
       }
@@ -3740,30 +4095,65 @@
       document.getElementById('timeshock-values').textContent = `${baseTime} | ${penaltyTime}`;
     }
 
+    function applyTheme(isStudyMode) {
+      document.body.classList.toggle('study-mode', isStudyMode);
+    }
+
+    function updateStartButtonAppearance() {
+      const isTypingMode = showAnswerToggle.checked;
+      if (isTypingMode) { // ON -> Typing Mode (Blue)
+        startButton.textContent = "タイピングスタート (s)";
+        applyTheme(false);
+      } else { // OFF -> Study Mode (Red)
+        startButton.textContent = "スタディスタート (s)";
+        applyTheme(true);
+      }
+    }
+    showAnswerToggle.addEventListener("change", updateStartButtonAppearance);
+
+
     // DOMContentLoaded
     document.addEventListener("DOMContentLoaded", () => {
-      // バージョン表示更新
-      document.getElementById('version-display').innerHTML =
-        `ver.${version} <a href="https://github.com/HailMoisten/StudyTyping" target="_blank">GitHub</a>`;
       loadQuestions();
       populateSetList();
       updateTimeshockButton();
+      
+      // Initialize with default toggle state
+      historyModeToggle.checked = true; // Default to Typing
+      updateStartButtonAppearance();
+
       const closeBtn = document.getElementById("close-set-modal");
       closeBtn.addEventListener("click", () => {
         document.getElementById("set-modal").style.display = "none";
       });
 
+      setupHistoryScreen();
+
     });
     // キャッシュクリアボタン
     document.getElementById('clear-cache-button').addEventListener('click', () => {
-      if (!confirm('問題データ、正解回数データがリセットされます。本当によろしいですか？（セーブしておきたい場合は、このテキストデータをExcelなどに貼り付けて保存してください。）')) {
+      if (!confirm('問題データのキャッシュのみリセットされます。本当によろしいですか？（セーブしておきたい場合は、このテキストデータをExcelなどに貼り付けて保存してください。）')) {
         return;
       }
-      localStorage.removeItem('questions');
-      showToast('キャッシュをクリアしました');
-      // 必要ならここで再読み込み／再描画
-      loadQuestions();
+      localStorage.removeItem('cachedQuestions');
+      localStorage.removeItem('cachedVersion');
+      questions = defaultQuestions; // ★ Reset to default questions
+      saveQuestions(); // ★ Save default questions and new version
+      showToast('問題キャッシュをクリアしました。デフォルトの問題データが読み込まれました。');
+      
+      // 再描画
       populateSetList();
+      // "new!"表示を消すためにバージョン表示も更新
+      const versionDisplay = document.getElementById('version-display');
+      versionDisplay.innerHTML =
+          `問題ver.${version} <a href="https://github.com/HailMoisten/StudyTyping" target="_blank">GitHub</a>`;
+
+      // Update the textarea with default data
+      let tsvText = "Index\tカテゴリー\t問題集名\tTier\tローマ字答え\t英語答え\t答え\t問題文1\t問題文2\t問題文英語\t出題回数\t正解回数\t最新出題日\n";
+      questions.forEach((item) => {
+        tsvText += `${item.index}\t${item.categoryName}\t${item.setName}\t${item.tier}\t${item.answerRoman}\t${item.answerEng}\t${item.answer}\t${item.description1}\t${item.description2}\t${item.descriptionEng}\t${item.timesPresented}\t${item.timesCorrect}\t${item.lastPresentDate || ''}\n`;
+      });
+      dataTextarea.value = tsvText.trim();
     });
 
     /* トースト表示用ユーティリティ */
@@ -3782,7 +4172,402 @@
         setTimeout(() => container.removeChild(toast), 300);
       }, duration);
     }
+    
+    /********** 成績画面関連のロジック **********/
+    const historyModeToggle = document.getElementById("history-mode-toggle");
+    const historyTitle = document.getElementById("history-title");
+    const signatureCanvas = document.getElementById("signature-canvas");
+    const prevMonthButton = document.getElementById("prev-month-button");
+    const nextMonthButton = document.getElementById("next-month-button");
+    const monthDisplay = document.getElementById("month-display");
+    const yearlyViewToggle = document.getElementById("yearly-view-toggle");
+    const chartContainer = document.getElementById("history-chart-container");
+    const calendarContainer = document.getElementById("history-calendar-container");
+    const statsSummary = document.getElementById("stats-summary");
+    const backToHomeButton = document.getElementById("back-to-home-button");
+    const dailyScoreModal = document.getElementById("daily-score-modal");
+    
+    let historyChartCanvas = document.getElementById("history-chart");
+    let ctx = historyChartCanvas.getContext("2d");
+    let historyChartInstance = null;
+    let sigCtx = signatureCanvas.getContext("2d");
+    let currentHistoryDate = new Date();
+    let isYearlyView = false;
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
 
+    function setupHistoryScreen() {
+        showHistoryButton.addEventListener("click", () => {
+          startScreen.style.display = 'none';
+          scoreHistoryScreen.style.display = 'block';
+          // true: Typing(Blue), false: Study(Red)
+          const isTypingMode = historyModeToggle.checked;
+          scoreHistoryScreen.classList.toggle('history-study-mode', !isTypingMode);
+          currentHistoryDate = new Date();
+          isYearlyView = yearlyViewToggle.checked;
+          renderHistory();
+        });
+
+        backToHomeButton.addEventListener("click", () => {
+            scoreHistoryScreen.style.display = 'none';
+            startScreen.style.display = 'flex';
+        });
+
+        historyModeToggle.addEventListener("change", () => {
+            const isTypingMode = historyModeToggle.checked;
+            scoreHistoryScreen.classList.toggle('history-study-mode', !isTypingMode);
+            renderHistory();
+        });
+
+        yearlyViewToggle.addEventListener("change", () => {
+            isYearlyView = yearlyViewToggle.checked;
+            renderHistory();
+        });
+        prevMonthButton.addEventListener("click", () => {
+            if (isYearlyView) {
+                currentHistoryDate.setFullYear(currentHistoryDate.getFullYear() - 1);
+            } else {
+                currentHistoryDate.setMonth(currentHistoryDate.getMonth() - 1);
+            }
+            renderHistory();
+        });
+        nextMonthButton.addEventListener("click", () => {
+            if (isYearlyView) {
+                currentHistoryDate.setFullYear(currentHistoryDate.getFullYear() + 1);
+            } else {
+                currentHistoryDate.setMonth(currentHistoryDate.getMonth() + 1);
+            }
+            renderHistory();
+        });
+
+        // Signature Canvas
+        signatureCanvas.addEventListener('mousedown', (e) => startDrawing(e));
+        signatureCanvas.addEventListener('mousemove', (e) => draw(e));
+        signatureCanvas.addEventListener('mouseup', () => stopDrawing());
+        signatureCanvas.addEventListener('mouseout', () => stopDrawing());
+        signatureCanvas.addEventListener('touchstart', (e) => startDrawing(e.touches[0]));
+        signatureCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+        signatureCanvas.addEventListener('touchend', () => stopDrawing());
+        document.getElementById('clear-signature-button').addEventListener('click', () => sigCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height));
+    }
+    
+    function renderHistory() {
+        // true: Typing, false: Study
+        const isTypingMode = historyModeToggle.checked;
+        historyTitle.textContent = isTypingMode ? "タイピングの成績" : "スタディの成績";
+
+        if (isYearlyView) {
+            chartContainer.style.display = 'none';
+            calendarContainer.style.display = 'grid';
+            renderYearlyCalendar();
+        } else {
+            chartContainer.style.display = 'block';
+            calendarContainer.style.display = 'none';
+            renderMonthlyChart();
+        }
+        
+        calculateAndDisplayStats();
+    }
+    
+    function getActiveHistory() {
+        const historyKey = historyModeToggle.checked ? 'historyShowAnswer' : 'historyHiddenAnswer';
+        return JSON.parse(localStorage.getItem(historyKey)) || {};
+    }
+
+    function formatDuration(ms) {
+      if (!ms || ms < 0) return "0秒";
+      const totalSeconds = Math.floor(ms / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      let result = '';
+      if (hours > 0) result += `${hours}時間 `;
+      if (minutes > 0) result += `${minutes}分 `;
+      result += `${totalSeconds % 60}秒`;
+      return result.trim();
+    }
+
+
+    function calculateAndDisplayStats() {
+        const history = getActiveHistory();
+        const validData = Object.values(history).filter(d => d.activeTime >= 60000 && !d.excluded);
+
+        if (Object.keys(history).length === 0) {
+            statsSummary.innerHTML = "<p>まだプレイ記録がありません。</p>";
+            return;
+        }
+        if (validData.length === 0) {
+            statsSummary.innerHTML = "<p>60秒以上の有効なプレイ記録がありません。</p>";
+        }
+
+        let maxScore = 0;
+        let maxKpm = 0;
+        let maxLevel = "E-";
+        let totalTime = 0;
+        let totalKeys = 0;
+        let totalMistypes = 0;
+        let totalCorrects = 0;
+        let totalQuestions = 0;
+
+        // Use all non-excluded data for totals
+        Object.values(history).filter(d => !d.excluded).forEach(day => {
+            totalTime += day.activeTime;
+            totalKeys += day.totalKeystrokes;
+            totalMistypes += day.limitedMistypeCount;
+            totalCorrects += day.correctCount;
+            totalQuestions += day.totalQuestions;
+        });
+        
+        // Use only valid (>=60s and not excluded) data for max scores
+        validData.forEach(day => {
+            if (day.score > maxScore) maxScore = day.score;
+            if (day.kpm > maxKpm) maxKpm = day.kpm;
+        });
+
+        maxLevel = getLevelInfo(maxScore).level;
+        const maxLevelColor = getLevelInfo(maxScore).color;
+
+        statsSummary.innerHTML = `
+            <div class="stat-item"><div class="stat-label">最高レベル|スコア</div><div class="stat-value" style="color: ${maxLevelColor};">${maxLevel} | ${maxScore}</div></div>
+            <div class="stat-item"><div class="stat-label">最高KPM</div><div class="stat-value">${maxKpm.toFixed(0)}</div></div>
+            <div class="stat-item"><div class="stat-label">総プレイ時間</div><div class="stat-value"">${formatDuration(totalTime)}</div></div>
+            <div class="stat-item"><div class="stat-label">総正解数/回答数</div><div class="stat-value">${totalCorrects.toLocaleString()}/${totalQuestions.toLocaleString()}</div></div>
+            <div class="stat-item"><div class="stat-label">総正タイプ数</div><div class="stat-value">${totalKeys.toLocaleString()}</div></div>
+            <div class="stat-item"><div class="stat-label">総ミスタイプ数</div><div class="stat-value">${totalMistypes.toLocaleString()}</div></div>
+        `;
+    }
+
+    function renderMonthlyChart() {
+       if (historyChartInstance) {
+          historyChartInstance.destroy();
+       }
+        const history = getActiveHistory();
+        const year = currentHistoryDate.getFullYear();
+        const month = currentHistoryDate.getMonth();
+        monthDisplay.textContent = `${year}年 ${month + 1}月`;
+
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const labels = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+        
+        const isTypingMode = historyModeToggle.checked;
+        const mainColor = !isTypingMode ? '222, 84, 88' : '85, 99, 222';
+
+        let data1 = [];
+        let data2 = [];
+        let bgColors = [];
+        let borderColors = [];
+
+        for (let i = 1; i <= daysInMonth; i++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+            const dayData = history[dateStr];
+            
+            const isTransparent = (dayData && dayData.activeTime < 60000) || (dayData && dayData.excluded);
+            const bgColor = `rgba(${mainColor}, ${isTransparent ? '0.2' : '0.7'})`;
+            const borderColor = `rgba(${mainColor}, 1)`;
+
+            if (dayData) {
+                if (isTypingMode) { // Typing mode
+                    data1.push(dayData.kpm);
+                    data2.push(dayData.score);
+                } else { // Study mode
+                    data1.push(dayData.totalQuestions);
+                    data2.push(dayData.correctCount);
+                }
+            } else {
+                data1.push(0);
+                data2.push(0);
+            }
+            bgColors.push(bgColor);
+            borderColors.push(borderColor);
+        }
+        
+        const datasets = isTypingMode ? [ // Typing mode
+            { label: 'KPM', data: data1, borderColor: borderColors, borderWidth: 2, backgroundColor: 'transparent', type: 'bar' },
+            { label: 'スコア', data: data2, backgroundColor: bgColors, type: 'bar' }
+        ] : [ // Study mode
+            { label: '回答数', data: data1, borderColor: borderColors, borderWidth: 2, backgroundColor: 'transparent', type: 'bar' },
+            { label: '正解数', data: data2, backgroundColor: bgColors, type: 'bar' }
+        ];
+
+        historyChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false }, title: { display: false } },
+                    y: { grid:{ display: false }, beginAtZero: true, title: { display: false } }
+                },
+                plugins: { tooltip: { mode: 'index', intersect: false } },
+                onClick: handleChartClick
+            }
+        });
+    }
+    
+    function renderYearlyCalendar() {
+      const history = getActiveHistory();
+      let year = currentHistoryDate.getFullYear();
+      let month = currentHistoryDate.getMonth();
+      const fiscalYear = month >= 3 ? year : year - 1; // April to March
+      
+      monthDisplay.textContent = `${fiscalYear}年度`;
+      calendarContainer.innerHTML = '';
+
+      const monthNames = ['4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月', '1月', '2月', '3月'];
+      let calendarHtml = '';
+
+      for (let i = 0; i < 12; i++) {
+          const currentMonth = (i + 3) % 12;
+          const currentYear = currentMonth < 3 ? fiscalYear + 1 : fiscalYear;
+
+          calendarHtml += `<div><div class="calendar-month-name">${monthNames[i]}</div><div class="calendar-month">`;
+          const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
+          const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+          for (let j = 0; j < firstDayOfWeek; j++) {
+              calendarHtml += '<div class="calendar-day"></div>';
+          }
+
+          for (let day = 1; day <= daysInMonth; day++) {
+              const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const dayData = history[dateStr];
+              let color = '#efefef';
+              let dataAttr = '';
+
+              if (dayData && !dayData.excluded) {
+                  const minutes = dayData.activeTime / 60000;
+                  if (minutes >= 1) {
+                      const colorLevel = Math.min(4, Math.floor(minutes));
+                      color = avgColors[colorLevel];
+                  }
+                  dataAttr = `data-date="${dateStr}"`;
+              } else if (dayData) { // Excluded data, show as gray but clickable
+                  dataAttr = `data-date="${dateStr}"`;
+              }
+              calendarHtml += `<div class="calendar-day" style="background-color: ${color};" ${dataAttr}></div>`;
+          }
+          calendarHtml += '</div></div>';
+      }
+      
+      calendarContainer.innerHTML = calendarHtml;
+      calendarContainer.querySelectorAll('.calendar-day[data-date]').forEach(dayEl => {
+          dayEl.addEventListener('click', e => showDailyScoreModal(e.target.getAttribute('data-date')));
+      });
+    }
+    
+    function handleChartClick(e) {
+      if (!historyChartInstance) return;
+      const points = historyChartInstance.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+      if (points.length) {
+          const dayIndex = points[0].index;
+          const day = dayIndex + 1;
+          const year = currentHistoryDate.getFullYear();
+          const month = currentHistoryDate.getMonth() + 1;
+          const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          if(getActiveHistory()[dateStr]) {
+            showDailyScoreModal(dateStr);
+          }
+      }
+    }
+    
+    function showDailyScoreModal(date) {
+      const history = getActiveHistory();
+      const data = history[date];
+      if (!data) return;
+
+      const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+      document.getElementById('daily-score-date').textContent = formattedDate;
+      
+      const isExcluded = !!data.excluded;
+
+      document.getElementById('daily-score-content').innerHTML = `
+          <table>
+              <tr><td>プレイ時間</td><td>${(data.activeTime / 1000).toFixed(1)}秒</td></tr>
+              <tr><td>正解/回答</td><td>${data.correctCount} / ${data.totalQuestions}</td></tr>
+              <tr><td>正タイプ数</td><td>${data.totalKeystrokes}</td></tr>
+              <tr><td>ミスタイプ数</td><td>${data.limitedMistypeCount}</td></tr>
+              <tr><td>KPM</td><td>${data.kpm.toFixed(2)}</td></tr>
+              <tr><td>スコア</td><td>${data.score}</td></tr>
+          </table>`;
+      
+      const actionButton = document.getElementById('daily-score-action-button');
+      actionButton.textContent = isExcluded ? '復元' : '除外';
+
+      const newActionButton = actionButton.cloneNode(true);
+      actionButton.parentNode.replaceChild(newActionButton, actionButton);
+      newActionButton.addEventListener('click', () => toggleExclusionStatus(date));
+
+      dailyScoreModal.classList.toggle('history-study-mode', !historyModeToggle.checked);
+      dailyScoreModal.style.display = 'block';
+
+      setTimeout(() => document.addEventListener('click', hideDailyScoreModalOnClickOutside, { once: true }), 0);
+    }
+    
+    function hideDailyScoreModalOnClickOutside(event) {
+      if (!dailyScoreModal.contains(event.target)) {
+          hideDailyScoreModal();
+      } else {
+        // Re-add listener if click was inside
+        setTimeout(() => document.addEventListener('click', hideDailyScoreModalOnClickOutside, { once: true }), 0);
+      }
+    }
+
+    function hideDailyScoreModal() {
+      dailyScoreModal.style.display = 'none';
+      document.removeEventListener('click', hideDailyScoreModalOnClickOutside);
+    }
+
+    function toggleExclusionStatus(date) {
+        const historyKey = historyModeToggle.checked ? 'historyShowAnswer' : 'historyHiddenAnswer';
+        let history = getActiveHistory();
+        const data = history[date];
+        if (!data) return;
+
+        const isCurrentlyExcluded = !!data.excluded;
+        const actionText = isCurrentlyExcluded ? '復元' : '除外';
+        const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('ja-JP');
+
+        if (confirm(`${formattedDate}の記録を累計成績から${actionText}しますか？`)) {
+            if (isCurrentlyExcluded) {
+                delete data.excluded; // Cleanest way to mark as not excluded
+            } else {
+                data.excluded = true;
+            }
+            
+            localStorage.setItem(historyKey, JSON.stringify(history));
+            
+            hideDailyScoreModal();
+            renderHistory(); // This recalculates stats and re-renders the chart
+            showToast(`記録を${actionText}しました。`);
+        }
+    }
+
+
+    // Signature Canvas functions
+    function startDrawing(e) {
+      isDrawing = true;
+      const rect = signatureCanvas.getBoundingClientRect();
+      lastX = (e.clientX || e.pageX) - rect.left;
+      lastY = (e.clientY || e.pageY) - rect.top;
+    }
+
+    function draw(e) {
+        if (!isDrawing) return;
+        const rect = signatureCanvas.getBoundingClientRect();
+        const newX = (e.clientX || e.pageX) - rect.left;
+        const newY = (e.clientY || e.pageY) - rect.top;
+        sigCtx.beginPath();
+        sigCtx.moveTo(lastX, lastY);
+        sigCtx.lineTo(newX, newY);
+        sigCtx.stroke();
+        [lastX, lastY] = [newX, newY];
+    }
+    
+    function stopDrawing() {
+      isDrawing = false;
+    }
   </script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
